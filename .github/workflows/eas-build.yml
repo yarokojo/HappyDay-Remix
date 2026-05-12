@@ -1,0 +1,39 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:    # Manual trigger (click button in GitHub)
+  push:
+    branches: [ main, master ]   # Auto-build when you push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android APK
+        run: |
+          cd ~/HappyDay-Remix
+          eas build --platform android --profile development --non-interactive
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: '*.apk'
