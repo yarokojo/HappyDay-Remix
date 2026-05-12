@@ -1,10 +1,13 @@
-import React, { useState, useRef } from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, Share, Alert, Platform } from "react-native";
+import React, { useState, useRef, useCallback } from "react";
+import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, Share, Alert, Platform, Pressable } from "react-native";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Edit2, Check, X, Image as ImageIcon, Trash2, Send, UserPlus, UserCheck, Video as VideoIcon, Repeat, Bookmark, MapPin, Eye, Cake, PartyPopper, Gift } from "lucide-react-native";
 import { Post } from "../types";
 import { MotiView, AnimatePresence } from "moti";
 import { Video, ResizeMode } from "expo-av";
 import { useTheme } from "../context/ThemeContext";
+import { useActivity } from "../context/ActivityContext";
+import { useAuth } from "../context/AuthContext";
+import * as Haptics from 'expo-haptics';
 
 interface FeedCardProps {
   post: Post;
@@ -38,6 +41,8 @@ export default function FeedCard({
   onNavigate
 }: FeedCardProps) {
   const { theme, darkMode } = useTheme();
+  const { user } = useAuth();
+  const { logView, saveForLater, removeFromSaved } = useActivity();
   const [isEditing, setIsEditing] = useState(false);
   const [showComments, setShowComments] = useState(false);
   // ... rest of state
@@ -55,15 +60,43 @@ export default function FeedCard({
   
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editedCommentContent, setEditedCommentContent] = useState("");
+  const [lastTap, setLastTap] = useState(0);
+  const [showHeartOverlay, setShowHeartOverlay] = useState(false);
 
-  const isOwnPost = post.authorName === "Alex Johnson";
+  const isOwnPost = user && (post.authorId === user.uid || post.authorName === user.displayName);
 
   const handleLike = () => {
     if (!hasLiked) {
       onLike();
       setHasLiked(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      
+      // Log as history when liked/interacted
+      logView({
+        id: post.id,
+        type: post.video ? 'video' : 'image',
+        title: post.content.substring(0, 30) + '...',
+        imageUrl: post.image || post.authorImage
+      });
+    } else {
+      setHasLiked(false);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
+
+  const handleDoubleTap = useCallback(() => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    if (lastTap && (now - lastTap) < DOUBLE_TAP_DELAY) {
+      if (!hasLiked) {
+        handleLike();
+      }
+      setShowHeartOverlay(true);
+      setTimeout(() => setShowHeartOverlay(false), 1000);
+    } else {
+      setLastTap(now);
+    }
+  }, [lastTap, hasLiked, handleLike]);
 
   const handleShare = async () => {
     try {
@@ -80,6 +113,10 @@ export default function FeedCard({
     if (!hasReposted) {
       onRepost();
       setHasReposted(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else {
+      setHasReposted(false);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
 
@@ -114,6 +151,7 @@ export default function FeedCard({
       onAddComment(newComment);
       setNewComment("");
       if (!showComments) setShowComments(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
 
@@ -250,9 +288,25 @@ export default function FeedCard({
       </View>
 
       {!isEditing && post.image && (
-        <TouchableOpacity onPress={onSelect} activeOpacity={0.9} style={styles.mediaContainer}>
+        <Pressable 
+          onPress={handleDoubleTap} 
+          style={styles.mediaContainer}
+        >
           <Image source={{ uri: post.image }} style={styles.postImage} resizeMode="cover" />
-        </TouchableOpacity>
+          <AnimatePresence>
+            {showHeartOverlay && (
+              <MotiView 
+                from={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1.5, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{ type: 'spring', damping: 10 }}
+                style={styles.heartOverlay}
+              >
+                <Heart size={80} color="#fff" fill="#fff" />
+              </MotiView>
+            )}
+          </AnimatePresence>
+        </Pressable>
       )}
 
       {!isEditing && post.video && (
@@ -290,7 +344,24 @@ export default function FeedCard({
             </View>
 
             <View style={styles.rightInteractions}>
-              <TouchableOpacity onPress={onToggleBookmark} style={styles.interactionButton}>
+              <TouchableOpacity 
+                onPress={() => {
+                  onToggleBookmark();
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  
+                  if (!post.isBookmarked) {
+                    saveForLater({
+                      id: post.id,
+                      type: post.video ? 'video' : 'post',
+                      title: post.content.substring(0, 30) + '...',
+                      imageUrl: post.image || post.authorImage
+                    });
+                  } else {
+                    removeFromSaved(post.id);
+                  }
+                }} 
+                style={styles.interactionButton}
+              >
                 <Bookmark size={20} color={post.isBookmarked ? "#f59e0b" : theme.subText} fill={post.isBookmarked ? "#f59e0b" : "transparent"} />
               </TouchableOpacity>
               <TouchableOpacity onPress={handleShare} style={styles.interactionButton}>
@@ -305,23 +376,28 @@ export default function FeedCard({
         <AnimatePresence>
           {showComments && (
             <MotiView
-              from={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
+              from={{ opacity: 0, scaleY: 0.8 }}
+              animate={{ opacity: 1, scaleY: 1 }}
+              exit={{ opacity: 0, scaleY: 0.8 }}
+              transition={{ type: 'timing', duration: 250 }}
               style={[styles.commentsSection, { backgroundColor: theme.itemBg, borderTopColor: theme.border }]}
             >
-              {post.commentsList?.map((comment) => (
-                <View key={comment.id} style={styles.commentItem}>
-                  <Image source={{ uri: comment.authorImage }} style={[styles.smallAvatar, { backgroundColor: theme.border }]} />
-                  <View style={styles.commentContent}>
-                    <View style={styles.commentHeader}>
-                      <Text style={[styles.commentAuthor, { color: theme.text }]}>{comment.authorName}</Text>
-                      <Text style={[styles.commentTime, { color: theme.subText }]}>{comment.timestamp}</Text>
+              {post.commentsList?.length ? (
+                post.commentsList.map((comment) => (
+                  <View key={comment.id} style={styles.commentItem}>
+                    <Image source={{ uri: comment.authorImage }} style={[styles.smallAvatar, { backgroundColor: theme.border }]} />
+                    <View style={styles.commentContent}>
+                      <View style={styles.commentHeader}>
+                        <Text style={[styles.commentAuthor, { color: theme.text }]}>{comment.authorName}</Text>
+                        <Text style={[styles.commentTime, { color: theme.subText }]}>{comment.timestamp}</Text>
+                      </View>
+                      <Text style={[styles.commentText, { color: theme.text, opacity: 0.8 }]}>{comment.content}</Text>
                     </View>
-                    <Text style={[styles.commentText, { color: theme.text, opacity: 0.8 }]}>{comment.content}</Text>
                   </View>
-                </View>
-              ))}
+                ))
+              ) : (
+                <Text style={[styles.noCommentsText, { color: theme.subText }]}>No comments yet. Be the first to wish!</Text>
+              )}
 
               <View style={styles.addComment}>
                 <Image 
@@ -343,6 +419,7 @@ export default function FeedCard({
                   value={newComment}
                   onChangeText={setNewComment}
                   multiline
+                  blurOnSubmit={false}
                 />
                 <TouchableOpacity onPress={handlePostComment} disabled={!newComment.trim()}>
                   <Send size={18} color={newComment.trim() ? theme.primary : theme.border} />
@@ -585,6 +662,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  heartOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
   postVideo: {
     width: '100%',
     height: '100%',
@@ -654,6 +737,12 @@ const styles = StyleSheet.create({
   commentText: {
     fontSize: 12,
     lineHeight: 18,
+  },
+  noCommentsText: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    paddingVertical: 8,
   },
   addComment: {
     flexDirection: 'row',

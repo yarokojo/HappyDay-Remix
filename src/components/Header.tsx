@@ -52,10 +52,18 @@ export default function Header({ onNavigate, searchQuery, onSearchChange, userPr
     <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
       <View style={styles.contentWrap}>
         <View style={styles.left}>
-          <View style={[styles.logoSquare, { backgroundColor: theme.primary }]}>
-            <View style={styles.logoDot} />
-          </View>
-          {!isSearching && <Text style={[styles.title, { color: theme.text }]}>BirthDayApp</Text>}
+          <TouchableOpacity onPress={() => onNavigate?.('home')} style={styles.logoWrapper}>
+            <Image 
+              source={{ uri: "https://img.icons8.com/color/96/birthday-cake.png" }} 
+              style={styles.logo} 
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+          {!isSearching && (
+            <TouchableOpacity onPress={() => onNavigate?.('home')}>
+              <Text style={[styles.title, { color: theme.text }]}>BirthDayApp</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Integrated Search for Large Screens or Active Search for Mobile */}
@@ -333,19 +341,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  logoSquare: {
-    width: 32,
-    height: 32,
-    backgroundColor: '#4f46e5',
-    borderRadius: 8,
+  logoWrapper: {
+    width: 38,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoDot: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#fff',
-    borderRadius: 6,
+  logo: {
+    width: '100%',
+    height: '100%',
   },
   title: {
     fontSize: 20,

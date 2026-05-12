@@ -1,23 +1,25 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, TextInput, Modal, Share, Alert, Platform, useWindowDimensions } from "react-native";
-import { Settings, Grid, Heart, Package, Edit3, Camera, MapPin, Calendar, Activity, Check, X, Globe, Link as LinkIcon, Instagram, Twitter, Share2, Plus, Users, ArrowLeft, CreditCard, Smartphone, ChevronRight, Lock, Bell, Moon, Shield, Eye, Trash2 } from "lucide-react-native";
+import { Settings, Grid, Heart, Package, Edit3, Camera, MapPin, Calendar, Activity, Check, X, Globe, Link as LinkIcon, Instagram, Twitter, Share2, Plus, Users, ArrowLeft, CreditCard, Smartphone, ChevronRight, Lock, Bell, Moon, Shield, Eye, Trash2, Clock, Bookmark } from "lucide-react-native";
 import { MotiView, AnimatePresence } from "moti";
 import { BlurView } from "expo-blur";
 import { useTheme } from "../context/ThemeContext";
+import { useActivity } from "../context/ActivityContext";
+import { useAuth } from "../context/AuthContext";
 
 import * as ImagePicker from 'expo-image-picker';
 
 export default function ProfileScreen({ 
-  onNavigate, 
-  userProfileImage, 
-  onUpdateProfileImage 
+  onNavigate
 }: { 
   onNavigate: (screen: string, id?: string) => void;
-  userProfileImage: string;
-  onUpdateProfileImage: (image: string) => void;
 }) {
   const { darkMode, toggleDarkMode, theme, setPrimaryColor, primaryColor } = useTheme();
+  const { notifications, history, savedItems, clearHistory, removeFromSaved } = useActivity();
+  const { user, logout, isAdmin } = useAuth();
   const { width } = useWindowDimensions();
+  
+  const userProfileImage = user?.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop";
   const postCols = width > 1024 ? 5 : (width > 768 ? 4 : 3);
   const postWidth = (100 / postCols) - 1;
 
@@ -82,10 +84,10 @@ export default function ProfileScreen({
   };
 
   const [profile, setProfile] = useState({
-    name: "Alex Johnson",
-    username: "@alex_bday_guru",
+    name: user?.displayName || "Alex Johnson",
+    username: "@" + (user?.displayName?.toLowerCase().replace(' ', '_') || 'alex_bday_guru'),
     bio: "Turning celebrations into legendary memories. 🎂 Birthday Guru & Party Architect.",
-    location: "Manhattan, NY",
+    location: "Global",
     website: "alexcelebrates.com",
   });
 
@@ -105,7 +107,8 @@ export default function ProfileScreen({
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        onUpdateProfileImage(result.assets[0].uri);
+        // TODO: Implement real profile image update via updateProfile(auth.currentUser, { photoURL: ... })
+        Alert.alert("Success", "Profile image selected! (Upload logic pending)");
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -118,6 +121,8 @@ export default function ProfileScreen({
     { id: "activity", label: "Activity", Icon: Activity },
     { id: "wishes", label: "Wishes", Icon: Heart },
     { id: "gifts", label: "Gifts", Icon: Package },
+    { id: "history", label: "History", Icon: Clock },
+    { id: "saved", label: "Saved", Icon: Bookmark },
   ];
 
   const activities = [
@@ -129,9 +134,10 @@ export default function ProfileScreen({
     { id: "6", text: "Contributed ₵20 to Sam's Group Gift", time: "3 days ago", type: "gift", icon: Package, color: "#d97706", bg: "#fffbeb" },
   ];
 
-  const filteredActivities = activityFilter === "All" 
-    ? activities 
-    : activities.filter(a => a.type === activityFilter.toLowerCase());
+  const filteredActivities = (activityFilter === "All" 
+    ? (isAdmin ? activities : activities.filter(a => a.type !== 'wallet')) 
+    : activities.filter(a => a.type === activityFilter.toLowerCase())
+  );
 
   const handleShare = async () => {
     try {
@@ -646,7 +652,20 @@ export default function ProfileScreen({
               ))}
             </View>
 
-            <TouchableOpacity style={styles.logoutBtn}>
+            <TouchableOpacity style={styles.logoutBtn} onPress={() => {
+              Alert.alert(
+                "Log Out",
+                "Are you sure you want to log out?",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Log Out", style: "destructive", onPress: async () => {
+                    await logout();
+                    setIsSettingsOpen(false);
+                    onNavigate('home');
+                  }}
+                ]
+              );
+            }}>
               <Text style={styles.logoutBtnText}>Log Out</Text>
             </TouchableOpacity>
 
@@ -750,10 +769,12 @@ export default function ProfileScreen({
 
           {/* Stats */}
           <View style={[styles.statsRow, { borderTopColor: theme.border }]}>
-            <TouchableOpacity style={styles.statItem} onPress={() => onNavigate('wallet')}>
-              <Text style={[styles.statValue, { color: theme.text }]}>₵320</Text>
-              <Text style={[styles.statLabel, { color: theme.subText }]}>BALANCE</Text>
-            </TouchableOpacity>
+            {isAdmin && (
+              <TouchableOpacity style={styles.statItem} onPress={() => onNavigate('wallet')}>
+                <Text style={[styles.statValue, { color: theme.text }]}>₵320</Text>
+                <Text style={[styles.statLabel, { color: theme.subText }]}>BALANCE</Text>
+              </TouchableOpacity>
+            )}
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: theme.text }]}>1.2K</Text>
               <Text style={[styles.statLabel, { color: theme.subText }]}>FOLLOWING</Text>
@@ -793,6 +814,115 @@ export default function ProfileScreen({
 
         {/* Tab Content */}
         <View style={styles.tabContent}>
+          {activeTab === "wishes" && (
+            <View style={styles.activityList}>
+              {notifications.filter(n => n.type === 'wish').length > 0 ? (
+                notifications.filter(n => n.type === 'wish').map(wish => (
+                  <View key={wish.id} style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+                    <View style={[styles.activityIcon, { backgroundColor: theme.primary + '15' }]}>
+                      <Heart size={18} color={theme.primary} fill={theme.primary} />
+                    </View>
+                    <View style={styles.activityInfo}>
+                      <Text style={[styles.activityText, { color: theme.text }]}>{wish.user} {wish.message}</Text>
+                      <Text style={[styles.activityTime, { color: theme.subText }]}>{wish.time}</Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyTab}>
+                  <Text style={styles.emptyTabText}>No wishes recorded yet</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === "gifts" && (
+            <View style={styles.activityList}>
+              {notifications.filter(n => n.type === 'gift').length > 0 ? (
+                notifications.filter(n => n.type === 'gift').map(gift => (
+                  <View key={gift.id} style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+                    <View style={[styles.activityIcon, { backgroundColor: '#fef3c7' }]}>
+                      <Package size={18} color="#d97706" />
+                    </View>
+                    <View style={styles.activityInfo}>
+                      <Text style={[styles.activityText, { color: theme.text }]}>{gift.user} {gift.message}</Text>
+                      <Text style={[styles.activityTime, { color: theme.subText }]}>{gift.time}</Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyTab}>
+                  <Text style={styles.emptyTabText}>No gifts recorded yet</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === "history" && (
+            <View style={styles.activityList}>
+              <View style={[styles.filterRow, { justifyContent: 'space-between', alignItems: 'center' }]}>
+                <Text style={[styles.sectionHeader, { marginBottom: 0, color: theme.subText }]}>RECENT WATCHES</Text>
+                <TouchableOpacity onPress={clearHistory}>
+                  <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: '900' }}>CLEAR</Text>
+                </TouchableOpacity>
+              </View>
+              {history.length > 0 ? (
+                history.map(item => (
+                  <TouchableOpacity 
+                    key={item.id} 
+                    onPress={() => item.type === 'video' ? onNavigate('video', item.id) : onNavigate('post_detail', item.id)}
+                    style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}
+                  >
+                    <Image source={{ uri: item.imageUrl }} style={[styles.activityIcon, { borderRadius: 10 }]} />
+                    <View style={styles.activityInfo}>
+                      <Text style={[styles.activityText, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
+                      <View style={styles.activityMeta}>
+                        <Text style={[styles.activityTime, { color: theme.subText }]}>{item.timestamp}</Text>
+                        <View style={[styles.metaDot, { backgroundColor: theme.border }]} />
+                        <Text style={[styles.activityType, { color: theme.primary }]}>{item.type.toUpperCase()}</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={16} color={theme.border} />
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyTab}>
+                  <Text style={styles.emptyTabText}>Your watch history will appear here</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === "saved" && (
+            <View style={styles.activityList}>
+              <Text style={[styles.sectionHeader, { color: theme.subText }]}>SAVED FOR LATER</Text>
+              {savedItems.length > 0 ? (
+                savedItems.map(item => (
+                  <View key={item.id} style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+                    <Image source={{ uri: item.imageUrl }} style={[styles.activityIcon, { borderRadius: 10 }]} />
+                    <View style={styles.activityInfo}>
+                      <TouchableOpacity onPress={() => item.type === 'video' ? onNavigate('video', item.id) : onNavigate('post_detail', item.id)}>
+                        <Text style={[styles.activityText, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
+                      </TouchableOpacity>
+                      <View style={styles.activityMeta}>
+                        <Text style={[styles.activityTime, { color: theme.subText }]}>{item.timestamp}</Text>
+                        <View style={[styles.metaDot, { backgroundColor: theme.border }]} />
+                        <Text style={[styles.activityType, { color: theme.secondary }]}>{item.type.toUpperCase()}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity onPress={() => removeFromSaved(item.id)}>
+                      <Trash2 size={16} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyTab}>
+                  <Text style={styles.emptyTabText}>Save videos or posts to watch later</Text>
+                </View>
+              )}
+            </View>
+          )}
+
           {activeTab === "posts" && (
             <View style={styles.postsGrid}>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
@@ -813,7 +943,7 @@ export default function ProfileScreen({
           {activeTab === "activity" && (
             <View style={styles.activityList}>
               <View style={styles.filterRow}>
-                {["All", "Social", "Gift", "Wallet"].map(f => (
+                {["All", "Social", "Gift", ...(isAdmin ? ["Wallet"] : [])].map(f => (
                   <TouchableOpacity 
                     key={f} 
                     onPress={() => setActivityFilter(f)} 
@@ -915,6 +1045,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
+    maxWidth: 1000,
+    alignSelf: 'center',
+    width: '100%',
   },
   banner: {
     height: 180,

@@ -120,8 +120,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 120, // Increased padding to avoid bottom nav/screen edge
+    maxWidth: 700,
+    alignSelf: 'center',
+    width: '100%',
   },
   cardWrapper: {
     padding: 16,
+    width: '100%',
   },
 });

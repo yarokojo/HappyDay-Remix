@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Image, Platform, RefreshControl, useWindowDimensions } from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Image, Platform, RefreshControl, useWindowDimensions, Pressable } from "react-native";
 import { MotiView, AnimatePresence } from "moti";
 import Stories from "../components/Stories";
 import CelebrantCard from "../components/CelebrantCard";
@@ -9,6 +9,7 @@ import { Celebrant, Post, Story, TrendingCeleb } from "../types";
 import FeedCard from "../components/FeedCard";
 import { LayoutGrid, Sparkles, CalendarRange, PlusCircle, Image as ImageIcon, Cake, Plus, Search, CheckCircle2 } from "lucide-react-native";
 import { useTheme } from "../context/ThemeContext";
+import * as Haptics from 'expo-haptics';
 
 const TRENDING_CELEBS: TrendingCeleb[] = [
   { id: "tc1", name: "Dwayne Johnson", handle: "@therock", imageUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop", isVerified: true },
@@ -96,6 +97,7 @@ export default function HomeScreen({
 
   const onRefresh = React.useCallback(() => {
     setIsRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setTimeout(() => {
       // Simulate adding a new celebrant
       const newCeleb = { id: Date.now().toString(), name: "Surprise Celeb", age: 25, date: "Today", imageUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop" };
@@ -130,10 +132,16 @@ export default function HomeScreen({
                 const Icon = tab.icon;
                 const isActive = activeTopTab === tab.id;
                 return (
-                  <TouchableOpacity
+                  <Pressable
                     key={tab.id}
-                    onPress={() => setActiveTopTab(tab.id)}
-                    style={styles.tabItem}
+                    onPress={() => {
+                      setActiveTopTab(tab.id);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                    style={({ pressed }) => [
+                      styles.tabItem,
+                      { opacity: pressed ? 0.7 : 1 }
+                    ]}
                   >
                     <Icon size={20} color={isActive ? theme.primary : theme.subText} />
                     <Text style={[styles.tabLabel, { color: isActive ? theme.primary : theme.subText }]}>{tab.label}</Text>
@@ -144,7 +152,7 @@ export default function HomeScreen({
                         animate={{ opacity: 1 }}
                       />
                     )}
-                  </TouchableOpacity>
+                  </Pressable>
                 );
               })}
             </View>
@@ -171,14 +179,29 @@ export default function HomeScreen({
                   >
                     <View style={styles.sectionHeader}>
                       <Text style={[styles.sectionTitle, { color: theme.text }]}>Today's Celebrations</Text>
-                      <MotiView 
-                        from={{ opacity: 0.6 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ loop: true, duration: 1500, type: 'timing' }}
-                        style={[styles.liveBadge, { backgroundColor: darkMode ? theme.itemBg : '#fef3c7' }]}
+                      <TouchableOpacity 
+                        activeOpacity={0.7}
+                        onPress={() => onNavigate('video')}
+                        style={styles.liveContainer}
                       >
-                        <Text style={[styles.liveText, { color: darkMode ? theme.accent : '#d97706' }]}>LIVE</Text>
-                      </MotiView>
+                        <MotiView 
+                          from={{ opacity: 0.6, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ loop: true, duration: 2000, type: 'timing' }}
+                          style={[styles.liveBadge, { backgroundColor: darkMode ? theme.itemBg : '#fef2f2', borderColor: '#fee2e2', borderWidth: 1 }]}
+                        >
+                          <View style={styles.liveIndicatorRow}>
+                            <MotiView 
+                              from={{ scale: 0.8, opacity: 0.5 }}
+                              animate={{ scale: 1.2, opacity: 1 }}
+                              transition={{ loop: true, duration: 1000, type: 'timing' }}
+                              style={styles.redDot} 
+                            />
+                            <Text style={[styles.liveText, { color: '#ef4444' }]}>LIVE</Text>
+                          </View>
+                        </MotiView>
+                        <Text style={[styles.watchingCount, { color: theme.subText }]}>2.4k watching</Text>
+                      </TouchableOpacity>
                     </View>
 
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.celebrantsScroll}>
@@ -304,8 +327,6 @@ export default function HomeScreen({
                         ))
                       )}
                     </View>
-
-                    {!(isLargeScreen || isTablet) && <UpcomingPanel onNavigate={onNavigate} />}
                   </MotiView>
                 )}
 
@@ -393,7 +414,6 @@ export default function HomeScreen({
             <View style={styles.rightColumn}>
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.rightColumnInternal}>
-                  <UpcomingPanel onNavigate={onNavigate} />
                   <View style={[styles.webBanner, { backgroundColor: theme.card, borderColor: theme.border }]}>
                     <Text style={[styles.webBannerTitle, { color: theme.text }]}>Premium Events</Text>
                     <Text style={[styles.webBannerDesc, { color: theme.subText }]}>Upgrade to host unlimited virtual parties with HD streaming.</Text>
@@ -427,20 +447,23 @@ const styles = StyleSheet.create({
   },
   contentLayoutRow: {
     flexDirection: 'row',
-    paddingHorizontal: 0, // Reset padding for row layout
+    paddingHorizontal: 0,
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
   },
   centerColumn: {
-    flex: 1,
-    maxWidth: '100%',
-    height: '100%', // Take full height
+    flex: 2,
+    maxWidth: 700,
+    height: '100%',
   },
   rightColumn: {
-    width: 320,
+    width: 350,
     padding: 24,
     borderLeftWidth: 1,
     borderLeftColor: '#f1f5f9',
     backgroundColor: 'transparent',
-    display: Platform.OS === 'web' ? 'flex' : 'flex', 
+    display: Platform.OS === 'web' ? 'flex' : 'flex',
   },
   rightColumnInternal: {
     gap: 24,
@@ -508,17 +531,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
   },
   liveBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  liveContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  liveIndicatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  redDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#ef4444',
+  },
+  watchingCount: {
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   liveText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   celebrantsScroll: {
     gap: 16,

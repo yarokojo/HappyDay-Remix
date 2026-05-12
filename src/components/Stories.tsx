@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Modal, Dimensions, Platform, ActivityIndicator, Alert, TextInput, KeyboardAvoidingView } from "react-native";
+import { View, Text, ScrollView, Image, StyleSheet, Modal, Dimensions, Platform, ActivityIndicator, Alert, TextInput, KeyboardAvoidingView, Pressable } from "react-native";
 import { Plus, Cake, X, ChevronLeft, ChevronRight, Share2, Heart, MessageCircle, Send } from "lucide-react-native";
 import { Story } from "../types";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from "expo-av";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
+import { useActivity } from "../context/ActivityContext";
+import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -22,6 +24,7 @@ interface StoriesProps {
 
 export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory, userProfileImage }: StoriesProps) {
   const { darkMode, theme } = useTheme();
+  const { logView } = useActivity();
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -57,6 +60,17 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
       startProgress();
       if (selectedStoryId) {
         onSeenStory(selectedStoryId);
+        
+        // Log to history
+        const story = stories.find(s => s.id === selectedStoryId);
+        if (story) {
+          logView({
+            id: story.id,
+            type: 'story',
+            title: `${story.userName}'s Story`,
+            imageUrl: story.imageUrl || story.contentUrl || ""
+          });
+        }
       }
     } else {
       if (progressTimer.current) clearInterval(progressTimer.current);
@@ -78,8 +92,10 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
     if (selectedStoryIndex !== null) {
       if (selectedStoryIndex < stories.length - 1) {
         setSelectedStoryId(stories[selectedStoryIndex + 1].id);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } else {
         setSelectedStoryId(null);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
     }
   };
@@ -88,8 +104,10 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
     if (selectedStoryIndex !== null) {
       if (selectedStoryIndex > 0) {
         setSelectedStoryId(stories[selectedStoryIndex - 1].id);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } else {
         setProgress(0);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     }
   };
@@ -132,12 +150,15 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
         contentContainerStyle={styles.contentContainer}
       >
         <View style={styles.storyItem}>
-          <TouchableOpacity 
-            style={[styles.addStoryButton, { backgroundColor: theme.itemBg, borderColor: theme.border }]}
+          <Pressable 
+            style={({ pressed }) => [
+              styles.addStoryButton, 
+              { backgroundColor: theme.itemBg, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }
+            ]}
             onPress={handleCreateStory}
           >
             <Plus size={24} color={theme.primary} />
-          </TouchableOpacity>
+          </Pressable>
           <Text style={[styles.storyLabel, { color: theme.subText }]}>Your Story</Text>
         </View>
         
@@ -145,9 +166,12 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
           const isLive = idx === 0 || idx === 1; // Simulation
           const hasBeenSeen = seenStoryIds.has(story.id);
           return (
-            <TouchableOpacity 
+            <Pressable 
               key={story.id} 
-              style={styles.storyItem}
+              style={({ pressed }) => [
+                styles.storyItem,
+                { opacity: pressed ? 0.8 : 1 }
+              ]}
               onPress={() => setSelectedStoryId(story.id)}
             >
               <View style={styles.avatarContainer}>
@@ -186,7 +210,7 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
                 )}
               </View>
               <Text style={[styles.storyLabel, { color: theme.subText }, hasBeenSeen && { color: theme.border }]} numberOfLines={1}>{story.userName}</Text>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </ScrollView>
@@ -253,19 +277,16 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
 
             {/* Tap areas for navigation */}
             <View style={styles.viewerControls}>
-              <TouchableOpacity 
-                activeOpacity={1} 
+              <Pressable 
                 style={styles.tapSide} 
                 onPress={handlePrev}
               />
-              <TouchableOpacity 
-                activeOpacity={1} 
+              <Pressable 
                 style={styles.tapMiddle} 
                 onLongPress={() => setIsPaused(true)}
                 onPressOut={() => setIsPaused(false)}
               />
-              <TouchableOpacity 
-                activeOpacity={1} 
+              <Pressable 
                 style={styles.tapSide} 
                 onPress={handleNext}
               />
@@ -295,9 +316,9 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
                   <Text style={styles.viewerUserName}>{activeStory.userName}</Text>
                   <Text style={styles.viewerTimestamp}>{activeStory.timestamp}</Text>
                 </View>
-                <TouchableOpacity onPress={() => setSelectedStoryId(null)} style={styles.viewerCloseBtn}>
+                <Pressable onPress={() => setSelectedStoryId(null)} style={({ pressed }) => [styles.viewerCloseBtn, { opacity: pressed ? 0.7 : 1 }]}>
                   <X size={24} color="#fff" />
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </SafeAreaView>
 
@@ -337,15 +358,15 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
                         exit={{ opacity: 0, scale: 0.5, translateX: 10 }}
                         transition={{ type: 'spring', damping: 15 }}
                       >
-                        <TouchableOpacity 
-                          style={styles.sendButton}
+                        <Pressable 
+                          style={({ pressed }) => [styles.sendButton, { opacity: pressed ? 0.8 : 1 }]}
                           onPress={() => {
                             setReplyMessage("");
                             setIsPaused(false);
                           }}
                         >
                           <Send size={20} color="#fff" strokeWidth={2.5} />
-                        </TouchableOpacity>
+                        </Pressable>
                       </MotiView>
                     )}
                   </AnimatePresence>
@@ -359,12 +380,18 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
                       exit={{ opacity: 0, scale: 0.8 }}
                       style={styles.footerActions}
                     >
-                      <TouchableOpacity style={styles.footerActionBtn}>
+                      <Pressable 
+                        style={({ pressed }) => [styles.footerActionBtn, { opacity: pressed ? 0.7 : 1 }]}
+                        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+                      >
                         <Heart size={26} color="#fff" strokeWidth={2} />
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.footerActionBtn}>
+                      </Pressable>
+                      <Pressable 
+                        style={({ pressed }) => [styles.footerActionBtn, { opacity: pressed ? 0.7 : 1 }]}
+                        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                      >
                         <Share2 size={26} color="#fff" strokeWidth={2} />
-                      </TouchableOpacity>
+                      </Pressable>
                     </MotiView>
                   )}
                 </AnimatePresence>

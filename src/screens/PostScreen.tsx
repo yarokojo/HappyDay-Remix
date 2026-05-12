@@ -4,12 +4,14 @@ import { Camera, Image, Video, MapPin, AtSign, X, ArrowLeft } from "lucide-react
 import * as ImagePicker from 'expo-image-picker';
 import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 import { useTheme } from "../context/ThemeContext";
+import { useActivity } from "../context/ActivityContext";
+import { useAuth } from "../context/AuthContext";
+import * as Haptics from 'expo-haptics';
 
 type CelebrationType = 'birthday' | 'anniversary' | 'party' | 'general';
 
 interface PostScreenProps {
   initialMode?: 'post' | 'video';
-  userProfileImage: string;
   onPost: (
     content: string, 
     image?: string, 
@@ -22,8 +24,12 @@ interface PostScreenProps {
   onBack: () => void;
 }
 
-export default function PostScreen({ initialMode = 'post', userProfileImage, onPost, onBack }: PostScreenProps) {
+export default function PostScreen({ initialMode = 'post', onPost, onBack }: PostScreenProps) {
   const { theme, darkMode } = useTheme();
+  const { user } = useAuth();
+  const { addNotification } = useActivity();
+  
+  const userProfileImage = user?.photoURL || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop";
   const [content, setContent] = useState("");
   const [location, setLocation] = useState("");
   const [celebrationType, setCelebrationType] = useState<CelebrationType>('general');
@@ -41,6 +47,17 @@ export default function PostScreen({ initialMode = 'post', userProfileImage, onP
 
   const handleShare = () => {
     if (!content.trim() && !selectedImage && !selectedVideo) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    if (celebrationType === 'birthday' || celebrationType === 'anniversary') {
+      addNotification({
+        type: 'wish',
+        user: 'You',
+        avatar: userProfileImage,
+        message: `sent a ${celebrationType} wish to ${celebrantName || 'them'}! 🎂`
+      });
+    }
+
     onPost(content, selectedImage, selectedVideo, location, celebrationType, celebrantName, feeling);
     onBack();
   };
@@ -139,7 +156,7 @@ export default function PostScreen({ initialMode = 'post', userProfileImage, onP
           <View style={[styles.userSection, { borderBottomColor: theme.bg }]}>
             <RNImage source={{ uri: userProfileImage }} style={[styles.userAvatar, { backgroundColor: theme.itemBg }]} />
             <View>
-              <Text style={[styles.userName, { color: theme.text }]}>Alex Johnson</Text>
+              <Text style={[styles.userName, { color: theme.text }]}>{user?.displayName || "Alex Johnson"}</Text>
               <View style={styles.typeSelector}>
                 {['general', 'birthday', 'anniversary', 'party'].map((type) => (
                   <TouchableOpacity 
@@ -317,6 +334,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     gap: 16,
+    maxWidth: 700,
+    alignSelf: 'center',
+    width: '100%',
   },
   card: {
     backgroundColor: '#fff',
