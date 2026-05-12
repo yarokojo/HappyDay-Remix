@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "BirthDayApp",
+    "slug": "birthday-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.birthdayapp.remix"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

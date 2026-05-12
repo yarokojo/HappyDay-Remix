@@ -1,0 +1,9 @@
+{
+  "name": "Remix: Remix: BirthDayApp",
+  "description": "A comprehensive birthday celebration app with group gifting, virtual celebrations, interactive wallets, reels, and a social feed for all your special occasions.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": []
+}
