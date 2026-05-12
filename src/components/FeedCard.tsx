@@ -298,49 +298,59 @@ export default function FeedCard({
               </TouchableOpacity>
             </View>
           </View>
-
-          <AnimatePresence>
-            {showComments && (
-              <MotiView
-                from={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                style={[styles.commentsSection, { backgroundColor: theme.itemBg, borderTopColor: theme.border }]}
-              >
-                {post.commentsList?.map((comment) => (
-                  <View key={comment.id} style={styles.commentItem}>
-                    <Image source={{ uri: comment.authorImage }} style={[styles.smallAvatar, { backgroundColor: theme.border }]} />
-                    <View style={styles.commentContent}>
-                      <View style={styles.commentHeader}>
-                        <Text style={[styles.commentAuthor, { color: theme.text }]}>{comment.authorName}</Text>
-                        <Text style={[styles.commentTime, { color: theme.subText }]}>{comment.timestamp}</Text>
-                      </View>
-                      <Text style={[styles.commentText, { color: theme.text, opacity: 0.8 }]}>{comment.content}</Text>
-                    </View>
-                  </View>
-                ))}
-
-                <View style={styles.addComment}>
-                  <Image 
-                    source={{ uri: userProfileImage }} 
-                    style={[styles.smallAvatar, { backgroundColor: theme.border }]} 
-                  />
-                  <TextInput
-                    style={[styles.commentInput, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
-                    placeholder="Write a comment..."
-                    placeholderTextColor={theme.subText}
-                    value={newComment}
-                    onChangeText={setNewComment}
-                    onSubmitEditing={handlePostComment}
-                  />
-                  <TouchableOpacity onPress={handlePostComment} disabled={!newComment.trim()}>
-                    <Send size={18} color={newComment.trim() ? theme.primary : theme.border} />
-                  </TouchableOpacity>
-                </View>
-              </MotiView>
-            )}
-          </AnimatePresence>
         </View>
+      )}
+
+      {!isEditing && (
+        <AnimatePresence>
+          {showComments && (
+            <MotiView
+              from={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              style={[styles.commentsSection, { backgroundColor: theme.itemBg, borderTopColor: theme.border }]}
+            >
+              {post.commentsList?.map((comment) => (
+                <View key={comment.id} style={styles.commentItem}>
+                  <Image source={{ uri: comment.authorImage }} style={[styles.smallAvatar, { backgroundColor: theme.border }]} />
+                  <View style={styles.commentContent}>
+                    <View style={styles.commentHeader}>
+                      <Text style={[styles.commentAuthor, { color: theme.text }]}>{comment.authorName}</Text>
+                      <Text style={[styles.commentTime, { color: theme.subText }]}>{comment.timestamp}</Text>
+                    </View>
+                    <Text style={[styles.commentText, { color: theme.text, opacity: 0.8 }]}>{comment.content}</Text>
+                  </View>
+                </View>
+              ))}
+
+              <View style={styles.addComment}>
+                <Image 
+                  source={{ uri: userProfileImage }} 
+                  style={[styles.smallAvatar, { backgroundColor: theme.border }]} 
+                />
+                <TextInput
+                  style={[
+                    styles.commentInput, 
+                    { 
+                      backgroundColor: theme.card, 
+                      color: theme.text, 
+                      borderColor: theme.border,
+                      maxHeight: 100 
+                    }
+                  ]}
+                  placeholder="Write a comment..."
+                  placeholderTextColor={theme.subText}
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  multiline
+                />
+                <TouchableOpacity onPress={handlePostComment} disabled={!newComment.trim()}>
+                  <Send size={18} color={newComment.trim() ? theme.primary : theme.border} />
+                </TouchableOpacity>
+              </View>
+            </MotiView>
+          )}
+        </AnimatePresence>
       )}
 
       {/* Options Menu Modal */}
@@ -610,12 +620,10 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   commentsSection: {
-    backgroundColor: '#f8fafc',
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    marginTop: 8,
     padding: 16,
+    paddingBottom: 24, // Added more bottom padding
     gap: 16,
+    borderTopWidth: 1,
   },
   commentItem: {
     flexDirection: 'row',
@@ -625,7 +633,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#e2e8f0',
   },
   commentContent: {
     flex: 1,
@@ -639,16 +646,13 @@ const styles = StyleSheet.create({
   commentAuthor: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1e293b',
   },
   commentTime: {
     fontSize: 10,
-    color: '#94a3b8',
     fontWeight: '600',
   },
   commentText: {
     fontSize: 12,
-    color: '#475569',
     lineHeight: 18,
   },
   addComment: {
@@ -659,13 +663,12 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     flex: 1,
-    backgroundColor: '#fff',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
-    fontSize: 12,
+    fontSize: 13,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    minHeight: 40, // Ensure a minimum height for multiline
   },
   editForm: {
     gap: 12,

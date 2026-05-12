@@ -113,50 +113,53 @@ export default function HomeScreen({
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={styles.mainWrapper}>
-        <ScrollView 
-          ref={scrollRef}
-          showsVerticalScrollIndicator={false}
-          style={styles.feedScroll}
-          refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
-          }
-        >
-          <View style={[styles.contentLayout, (isLargeScreen || isTablet) && styles.contentLayoutRow]}>
-            {/* Center Content (Feed) */}
-            <View style={[styles.centerColumn, (isLargeScreen || isTablet) && { flex: 1.5 }]}>
-              <Stories 
-                stories={stories} 
-                seenStoryIds={seenStoryIds} 
-                onSeenStory={onSeenStory} 
-                onAddStory={onAddStory}
-                userProfileImage={userProfileImage}
-              />
-              
-              {/* Top Tabs */}
-              <View style={[styles.tabBar, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTopTab === tab.id;
-                  return (
-                    <TouchableOpacity
-                      key={tab.id}
-                      onPress={() => setActiveTopTab(tab.id)}
-                      style={styles.tabItem}
-                    >
-                      <Icon size={20} color={isActive ? theme.primary : theme.subText} />
-                      <Text style={[styles.tabLabel, { color: isActive ? theme.primary : theme.subText }]}>{tab.label}</Text>
-                      {isActive && (
-                        <MotiView 
-                          style={[styles.tabUnderline, { backgroundColor: theme.primary }]}
-                          from={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                        />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+        <View style={[styles.contentLayout, (isLargeScreen || isTablet) && styles.contentLayoutRow]}>
+          {/* Center Column */}
+          <View style={[styles.centerColumn, (isLargeScreen || isTablet) && { flex: 1.5 }]}>
+            <Stories 
+              stories={stories} 
+              seenStoryIds={seenStoryIds} 
+              onSeenStory={onSeenStory} 
+              onAddStory={onAddStory}
+              userProfileImage={userProfileImage}
+            />
+            
+            {/* Top Tabs (Static) */}
+            <View style={[styles.tabBar, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTopTab === tab.id;
+                return (
+                  <TouchableOpacity
+                    key={tab.id}
+                    onPress={() => setActiveTopTab(tab.id)}
+                    style={styles.tabItem}
+                  >
+                    <Icon size={20} color={isActive ? theme.primary : theme.subText} />
+                    <Text style={[styles.tabLabel, { color: isActive ? theme.primary : theme.subText }]}>{tab.label}</Text>
+                    {isActive && (
+                      <MotiView 
+                        style={[styles.tabUnderline, { backgroundColor: theme.primary }]}
+                        from={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
+            {/* Scrollable Content */}
+            <ScrollView 
+              ref={scrollRef}
+              showsVerticalScrollIndicator={false}
+              style={styles.feedScroll}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              refreshControl={
+                <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
+              }
+            >
               <AnimatePresence>
                 {activeTopTab === "feeds" && (
                   <MotiView
@@ -382,23 +385,27 @@ export default function HomeScreen({
                   </MotiView>
                 )}
               </AnimatePresence>
-            </View>
-
-            {/* Right Sidebar (Web/Tablet only) */}
-            {(isLargeScreen || isTablet) && (
-              <View style={styles.rightColumn}>
-                <UpcomingPanel onNavigate={onNavigate} />
-                <View style={[styles.webBanner, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                  <Text style={[styles.webBannerTitle, { color: theme.text }]}>Premium Events</Text>
-                  <Text style={[styles.webBannerDesc, { color: theme.subText }]}>Upgrade to host unlimited virtual parties with HD streaming.</Text>
-                  <TouchableOpacity style={[styles.webBannerBtn, { backgroundColor: theme.primary }]}>
-                    <Text style={styles.webBannerBtnText}>UPGRADE NOW</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+            </ScrollView>
           </View>
-        </ScrollView>
+
+          {/* Right Sidebar (Web/Tablet only) - Fixed or scrolls independently */}
+          {(isLargeScreen || isTablet) && (
+            <View style={styles.rightColumn}>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.rightColumnInternal}>
+                  <UpcomingPanel onNavigate={onNavigate} />
+                  <View style={[styles.webBanner, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                    <Text style={[styles.webBannerTitle, { color: theme.text }]}>Premium Events</Text>
+                    <Text style={[styles.webBannerDesc, { color: theme.subText }]}>Upgrade to host unlimited virtual parties with HD streaming.</Text>
+                    <TouchableOpacity style={[styles.webBannerBtn, { backgroundColor: theme.primary }]}>
+                      <Text style={styles.webBannerBtnText}>UPGRADE NOW</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -425,15 +432,21 @@ const styles = StyleSheet.create({
   centerColumn: {
     flex: 1,
     maxWidth: '100%',
+    height: '100%', // Take full height
   },
   rightColumn: {
     width: 320,
     padding: 24,
-    gap: 24,
     borderLeftWidth: 1,
     borderLeftColor: '#f1f5f9',
     backgroundColor: 'transparent',
-    display: Platform.OS === 'web' ? 'flex' : 'flex', // Only reachable via isLargeScreen/isTablet
+    display: Platform.OS === 'web' ? 'flex' : 'flex', 
+  },
+  rightColumnInternal: {
+    gap: 24,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Add space at bottom for better scrolling
   },
   webBanner: {
     padding: 24,
