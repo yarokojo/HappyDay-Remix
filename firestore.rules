@@ -29,12 +29,12 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
 
     function isValidUserProfile(data) {
-      return data.keys().hasAll(['uid', 'displayName', 'email', 'createdAt']) &&
-             data.keys().size() <= 6 &&
-             data.uid == request.auth.uid &&
-             data.displayName is string && data.displayName.size() <= 100 &&
-             data.email is string && data.email.size() <= 150 &&
-             data.createdAt == request.time;
+      return (!('uid' in data) || data.uid == request.auth.uid) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 200)) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 200)) &&
+             (!('createdAt' in data) || (data.createdAt is timestamp)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 2000)) &&
+             (!('lastSeen' in data) || (data.lastSeen is timestamp));
     }
 
     function isValidNotification(data) {
@@ -50,14 +50,20 @@ service cloud.firestore {
     }
 
     function isValidPost(data) {
-      return data.keys().hasAll(['authorId', 'createdAt']) &&
-             data.authorId == request.auth.uid &&
-             data.createdAt == request.time &&
-             (!('content' in data) || (data.content is string && data.content.size() <= 2000)) &&
+      return (!('content' in data) || (data.content is string && data.content.size() <= 2000)) &&
              (!('location' in data) || (data.location is string && data.location.size() <= 200)) &&
              (!('celebrationType' in data) || (data.celebrationType is string)) &&
              (!('authorName' in data) || (data.authorName is string)) &&
-             (!('authorAvatar' in data) || (data.authorAvatar is string));
+             (!('authorImage' in data) || (data.authorImage is string)) &&
+             (!('authorHandle' in data) || (data.authorHandle is string)) &&
+             (!('image' in data) || (data.image is string)) &&
+             (!('video' in data) || (data.video is string)) &&
+             (!('celebrantName' in data) || (data.celebrantName is string)) &&
+             (!('feeling' in data) || (data.feeling is string)) &&
+             (!('likes' in data) || (data.likes is number)) &&
+             (!('comments' in data) || (data.comments is number)) &&
+             (!('reposts' in data) || (data.reposts is number)) &&
+             (!('views' in data) || (data.views is number));
     }
 
     // -------------------------------------------------------------------------
@@ -67,9 +73,15 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      allow create: if isOwner(userId) && isValidUserProfile(incoming());
-      allow update: if isOwner(userId) && isValidUserProfile(incoming()) && 
-                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL']);
+      allow create: if isOwner(userId) && 
+                    isValidUserProfile(incoming()) && 
+                    incoming().keys().hasAll(['uid', 'displayName', 'email', 'createdAt']) &&
+                    incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && 
+                    (
+                      incoming().diff(existing()).affectedKeys().hasOnly(['lastSeen']) ||
+                      (isValidUserProfile(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'lastSeen']))
+                    );
       allow delete: if isAdmin();
     }
 
@@ -84,9 +96,18 @@ service cloud.firestore {
 
     match /posts/{postId} {
       allow read: if isSignedIn();
-      allow create: if isVerified() && isValidPost(incoming());
-      allow update: if (isOwner(existing().authorId) || isAdmin()) && isValidPost(incoming()) &&
-                    incoming().diff(existing()).affectedKeys().hasOnly(['content', 'location', 'likes']);
+      allow create: if isSignedIn() && 
+                    isValidPost(incoming()) &&
+                    incoming().authorId == request.auth.uid &&
+                    incoming().createdAt == request.time;
+      allow update: if (isOwner(existing().authorId) || isAdmin()) && 
+                    isValidPost(incoming()) &&
+                    incoming().authorId == existing().authorId && // authorId is immutable
+                    incoming().createdAt == existing().createdAt && // createdAt is immutable
+                    incoming().diff(existing()).affectedKeys().hasOnly([
+                      'content', 'location', 'likes', 'reposts', 'image', 'video', 
+                      'celebrationType', 'celebrantName', 'feeling', 'comments', 'views'
+                    ]);
       allow delete: if isOwner(existing().authorId) || isAdmin();
     }
     

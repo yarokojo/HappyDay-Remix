@@ -215,7 +215,7 @@ export default function HomeScreen({
                       ))}
                     </ScrollView>
 
-                    <GiftShopBanner />
+                    <GiftShopBanner onPress={() => onNavigate('gift_shop')} />
 
                     {/* Feed Search Bar */}
                     <View style={[styles.feedSearchWrapper, { backgroundColor: theme.card, borderColor: theme.border }]}>

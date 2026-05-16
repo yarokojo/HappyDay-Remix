@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Image as RNImage, Platform, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Image as RNImage, Platform, Alert, ActivityIndicator } from "react-native";
 import { Camera, Image, Video, MapPin, AtSign, X, ArrowLeft } from "lucide-react-native";
 import * as ImagePicker from 'expo-image-picker';
 import { Video as ExpoVideo, ResizeMode } from 'expo-av';
@@ -20,7 +20,7 @@ interface PostScreenProps {
     celebrationType?: CelebrationType,
     celebrantName?: string,
     feeling?: string
-  ) => void;
+  ) => Promise<void>;
   onBack: () => void;
 }
 
@@ -39,27 +39,51 @@ export default function PostScreen({ initialMode = 'post', onPost, onBack }: Pos
   const [selectedImage, setSelectedImage] = useState<string | undefined>();
   const [selectedVideo, setSelectedVideo] = useState<string | undefined>();
 
+  const [isPosting, setIsPosting] = useState(false);
+
   React.useEffect(() => {
     if (initialMode === 'video' && !selectedVideo) {
       pickVideo();
     }
   }, [initialMode]);
 
-  const handleShare = () => {
-    if (!content.trim() && !selectedImage && !selectedVideo) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
-    if (celebrationType === 'birthday' || celebrationType === 'anniversary') {
-      addNotification({
-        type: 'wish',
-        user: 'You',
-        avatar: userProfileImage,
-        message: `sent a ${celebrationType} wish to ${celebrantName || 'them'}! 🎂`
-      });
+  const handleShare = async () => {
+    console.log("handleShare started", { contentSize: content.length, hasImage: !!selectedImage, hasVideo: !!selectedVideo });
+    if (!content.trim() && !selectedImage && !selectedVideo) {
+      console.log("handleShare aborted: no content");
+      return;
     }
+    
+    setIsPosting(true);
+    try {
+      if (Platform.OS !== 'web') {
+        try {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch (hErr) {
+          console.warn("Haptics failed", hErr);
+        }
+      }
+      
+      if (celebrationType === 'birthday' || celebrationType === 'anniversary') {
+        console.log("Adding celebration notification");
+        await addNotification({
+          type: 'wish',
+          user: 'You',
+          avatar: userProfileImage,
+          message: `sent a ${celebrationType} wish to ${celebrantName || 'them'}! 🎂`
+        });
+      }
 
-    onPost(content, selectedImage, selectedVideo, location, celebrationType, celebrantName, feeling);
-    onBack();
+      console.log("Calling onPost...");
+      await onPost(content, selectedImage, selectedVideo, location, celebrationType, celebrantName, feeling);
+      console.log("onPost successful, closing PostScreen");
+      onBack();
+    } catch (error) {
+      console.error("Post creation error in PostScreen:", error);
+      Alert.alert("Error", "Could not share your celebration. Please try again.");
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   const pickImage = async () => {
@@ -140,14 +164,18 @@ export default function PostScreen({ initialMode = 'post', onPost, onBack }: Pos
         </View>
         <TouchableOpacity 
           onPress={handleShare}
-          disabled={shareDisabled}
+          disabled={shareDisabled || isPosting}
           style={[
             styles.shareBtn, 
             { backgroundColor: theme.primary },
-            shareDisabled && { backgroundColor: theme.itemBg }
+            (shareDisabled || isPosting) && { backgroundColor: theme.itemBg }
           ]}
         >
-          <Text style={[styles.shareBtnText, { color: shareDisabled ? theme.subText : '#fff' }]}>Share</Text>
+          {isPosting ? (
+            <ActivityIndicator size="small" color={theme.subText} />
+          ) : (
+            <Text style={[styles.shareBtnText, { color: shareDisabled ? theme.subText : '#fff' }]}>Share</Text>
+          )}
         </TouchableOpacity>
       </View>
 

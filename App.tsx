@@ -84,7 +84,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 
 function MainApp() {
   const { darkMode, theme } = useTheme();
-  const { user, signIn, loading: authLoading, isAdmin, isSigningIn } = useAuth();
+  const { user, signIn, loading: authLoading, isAdmin, isSigningIn, error: authError } = useAuth();
   const { width } = useWindowDimensions();
   const isLargeScreen = width > 1024;
   const isTablet = width > 768 && width <= 1024;
@@ -128,6 +128,7 @@ function MainApp() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log(`Fetched ${snapshot.size} posts from Firestore`);
       const fetchedPosts: Post[] = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -173,6 +174,13 @@ function MainApp() {
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg, padding: 20 }}>
         <Text style={{ fontSize: 32, fontWeight: '900', color: theme.text, marginBottom: 8, textAlign: 'center' }}>Julia's 24th Bash</Text>
         <Text style={{ fontSize: 16, color: theme.subText, marginBottom: 48, textAlign: 'center' }}>Join the global celebration. Sign in to post wishes and send gifts.</Text>
+        
+        {authError && (
+          <View style={{ backgroundColor: '#fee2e2', padding: 12, borderRadius: 12, marginBottom: 24, width: '100%', maxWidth: 320 }}>
+            <Text style={{ color: '#b91c1c', fontSize: 14, textAlign: 'center' }}>{authError}</Text>
+          </View>
+        )}
+
         <TouchableOpacity 
           onPress={signIn}
           disabled={isSigningIn}
@@ -210,25 +218,30 @@ function MainApp() {
     celebrantName?: string,
     feeling?: string
   ) => {
+    console.log("Creating new post with content:", content.substring(0, 20) + "...");
     try {
-      await addDoc(collection(db, "posts"), {
+      const postData: any = {
         authorId: user.uid,
         authorName: user.displayName || "Unknown",
         authorHandle: "@" + (user.displayName?.toLowerCase().replace(' ', '_') || 'user'),
         authorImage: userProfileImage,
-        content,
-        image,
-        video,
-        location,
-        celebrationType,
-        celebrantName,
-        feeling,
+        content: content || "",
         likes: 0,
         comments: 0,
         reposts: 0,
         views: 0,
         createdAt: serverTimestamp()
-      });
+      };
+
+      if (image) postData.image = image;
+      if (video) postData.video = video;
+      if (location) postData.location = location;
+      if (celebrationType) postData.celebrationType = celebrationType;
+      if (celebrantName) postData.celebrantName = celebrantName;
+      if (feeling) postData.feeling = feeling;
+
+      const docRef = await addDoc(collection(db, "posts"), postData);
+      console.log("Post created with ID:", docRef.id);
       
       if (video) {
         setActiveTab("video");
@@ -236,7 +249,9 @@ function MainApp() {
         setActiveTab("home");
       }
       setView(null);
+      console.log("View reset to null, post successful.");
     } catch (error) {
+      console.error("handlePost detailed error:", error);
       handleFirestoreError(error, OperationType.CREATE, "posts");
     }
   };
@@ -252,15 +267,18 @@ function MainApp() {
     feeling?: string
   ) => {
     try {
-      await updateDoc(doc(db, "posts", postId), {
-        content: newContent,
-        image: newImage,
-        video: newVideo,
-        location: newLocation,
-        celebrationType,
-        celebrantName,
-        feeling
-      });
+      const updateData: any = {
+        content: newContent || "",
+      };
+
+      if (newImage !== undefined) updateData.image = newImage || null;
+      if (newVideo !== undefined) updateData.video = newVideo || null;
+      if (newLocation !== undefined) updateData.location = newLocation || null;
+      if (celebrationType !== undefined) updateData.celebrationType = celebrationType || null;
+      if (celebrantName !== undefined) updateData.celebrantName = celebrantName || null;
+      if (feeling !== undefined) updateData.feeling = feeling || null;
+
+      await updateDoc(doc(db, "posts", postId), updateData);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `posts/${postId}`);
     }
@@ -361,6 +379,10 @@ function MainApp() {
       setWebViewUrl(url);
       setWebViewTitle(title || null);
     }
+    if (screen === "gift_shop") {
+      handleTabChange("gift_shop");
+      return;
+    }
     setView(screen);
   };
 
@@ -408,7 +430,6 @@ function MainApp() {
     }
     if (view === "privacy_policy") return <PrivacyPolicyScreen onBack={() => setView(null)} />;
     if (view === "terms") return <TermsAndConditionsScreen onBack={() => setView(null)} />;
-    if (view === "gift_shop") return <GiftShopScreen onBack={() => setView(null)} onNavigate={navigateTo} />;
     
     // Admin only screens
     if (view === "wallet") {

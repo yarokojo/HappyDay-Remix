@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Platform, Alert } from "react-native";
-import { ArrowLeft, Users, Target, Clock, Cake, DollarSign, Plus } from "lucide-react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Platform, Alert, Modal, TextInput, ActivityIndicator } from "react-native";
+import { ArrowLeft, Users, Target, Clock, Cake, DollarSign, Plus, X, Landmark, Smartphone, ShieldCheck } from "lucide-react-native";
 import { MotiView, AnimatePresence } from "moti";
 import { GroupGift } from "../types";
 import { useTheme } from "../context/ThemeContext";
+import { useActivity } from "../context/ActivityContext";
 
-const MOCK_GROUP_GIFTS: GroupGift[] = [
+const INITIAL_MOCK_GROUP_GIFTS: GroupGift[] = [
   {
     id: "1",
     celebrantName: "Julia Mason",
@@ -28,14 +29,105 @@ const MOCK_GROUP_GIFTS: GroupGift[] = [
   }
 ];
 
+const PAYMENT_METHODS = [
+  { id: 'momo', name: 'MTN MoMo', icon: Smartphone, color: '#fbbf24' },
+  { id: 'vodacash', name: 'Vodafone Cash', icon: Smartphone, color: '#ef4444' },
+  { id: 'atmoney', name: 'AirtelTigo Money', icon: Smartphone, color: '#3b82f6' },
+  { id: 'card', name: 'Visa/MasterCard', icon: Landmark, color: '#6366f1' },
+];
+
 export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
   const { theme, darkMode } = useTheme();
+  const { addNotification } = useActivity();
+  const [gifts, setGifts] = useState<GroupGift[]>(INITIAL_MOCK_GROUP_GIFTS);
   const [selectedGift, setSelectedGift] = useState<GroupGift | null>(null);
   const [contribution, setContribution] = useState("10");
+  const [paymentMethod, setPaymentMethod] = useState('momo');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isPoolModalVisible, setIsPoolModalVisible] = useState(false);
+  
+  // New pool form state
+  const [newCelebrant, setNewCelebrant] = useState("");
+  const [newGift, setNewGift] = useState("");
+  const [newTarget, setNewTarget] = useState("");
 
-  const handleContribute = () => {
-    Alert.alert("Success", `Contributed ₵${contribution} successfully!`);
+  const handleContribute = async () => {
+    if (!selectedGift) return;
+    
+    setIsProcessing(true);
+    
+    // Simulate payment gateway delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    const amt = parseInt(contribution);
+    let targetReached = false;
+    let finalAmount = 0;
+
+    setGifts(prev => {
+      const newGifts = prev.map(g => {
+        if (g.id === selectedGift.id) {
+          const updatedAmount = g.currentAmount + amt;
+          finalAmount = updatedAmount;
+          if (updatedAmount >= g.targetAmount && g.currentAmount < g.targetAmount) {
+            targetReached = true;
+          }
+          return {
+            ...g,
+            currentAmount: updatedAmount,
+            contributorsCount: g.contributorsCount + 1
+          };
+        }
+        return g;
+      });
+      return newGifts;
+    });
+    
+    setIsProcessing(false);
+
+    if (targetReached) {
+      // Trigger automatic payout and alerts
+      Alert.alert(
+        "Target Reached! 🎉",
+        `₵${finalAmount} has been automatically sent to ${selectedGift.celebrantName}'s wallet. Everyone has been notified!`,
+        [{ text: "Great!" }]
+      );
+
+      addNotification({
+        type: 'gift',
+        user: "System",
+        avatar: "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=200",
+        message: `Goal met! ₵${finalAmount} sent to ${selectedGift.celebrantName}'s wallet for ${selectedGift.giftName}. 🎊`
+      });
+    } else {
+      Alert.alert("Success", `Contributed ₵${contribution} via ${PAYMENT_METHODS.find(m => m.id === paymentMethod)?.name} successfully!`);
+    }
+
     setSelectedGift(null);
+  };
+
+  const handleCreatePool = () => {
+    if (!newCelebrant || !newGift || !newTarget) {
+      Alert.alert("Error", "Please fill all fields");
+      return;
+    }
+
+    const newPool: GroupGift = {
+      id: Date.now().toString(),
+      celebrantName: newCelebrant,
+      giftName: newGift,
+      targetAmount: parseInt(newTarget) || 100,
+      currentAmount: 0,
+      contributorsCount: 0,
+      deadline: "24h left",
+      imageUrl: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&h=400&fit=crop"
+    };
+
+    setGifts([newPool, ...gifts]);
+    setIsPoolModalVisible(false);
+    setNewCelebrant("");
+    setNewGift("");
+    setNewTarget("");
+    Alert.alert("Success", "New contribution pool started!");
   };
 
   return (
@@ -61,7 +153,10 @@ export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
                 <Text style={styles.promoDesc}>
                   Contribute small amounts with friends to get a premium gift for your favorite celebrants.
                 </Text>
-                <TouchableOpacity style={[styles.newPoolBtn, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <TouchableOpacity 
+                  onPress={() => setIsPoolModalVisible(true)}
+                  style={[styles.newPoolBtn, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+                >
                   <Plus size={16} color="#fff" />
                   <Text style={styles.newPoolText}>Start New Pool</Text>
                 </TouchableOpacity>
@@ -72,7 +167,7 @@ export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
             </View>
 
             <View style={styles.giftList}>
-              {MOCK_GROUP_GIFTS.map((gift) => {
+              {gifts.map((gift) => {
                 const progress = (gift.currentAmount / gift.targetAmount) * 100;
                 return (
                   <TouchableOpacity
@@ -100,7 +195,8 @@ export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
                         <View style={[styles.progressBarBg, { backgroundColor: theme.itemBg }]}>
                           <MotiView 
                             from={{ width: 0 }}
-                            animate={{ width: `${progress}%` }}
+                            animate={{ width: `${Math.min(100, progress)}%` }}
+                            transition={{ type: 'timing', duration: 1000 }}
                             style={[styles.progressBarFill, { backgroundColor: theme.primary }]}
                           />
                         </View>
@@ -149,7 +245,7 @@ export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
               </View>
 
               <View style={styles.contributionSection}>
-                <Text style={[styles.contributeHeader, { color: theme.text }]}>Select Contribution</Text>
+                <Text style={[styles.contributeHeader, { color: theme.text }]}>How much to give?</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.contributeScroll}>
                   {["5", "10", "20", "50", "100"].map((amt) => (
                     <TouchableOpacity
@@ -169,18 +265,129 @@ export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
+
+                <View style={styles.paymentMethodSection}>
+                  <Text style={[styles.contributeHeader, { color: theme.text, marginTop: 24 }]}>Pay via Mobile Money</Text>
+                  <View style={styles.paymentGrid}>
+                    {PAYMENT_METHODS.map((method) => {
+                      const Icon = method.icon;
+                      const isSelected = paymentMethod === method.id;
+                      return (
+                        <TouchableOpacity
+                          key={method.id}
+                          onPress={() => setPaymentMethod(method.id)}
+                          style={[
+                            styles.methodBtn,
+                            { backgroundColor: theme.itemBg, borderColor: theme.border },
+                            isSelected && { borderColor: method.color, backgroundColor: darkMode ? theme.itemBg : method.color + '10' }
+                          ]}
+                        >
+                          <View style={[styles.methodIconWrapper, { backgroundColor: isSelected ? method.color : 'transparent' }]}>
+                            <Icon size={20} color={isSelected ? '#fff' : theme.subText} />
+                          </View>
+                          <Text style={[styles.methodName, { color: isSelected ? theme.text : theme.subText }]}>{method.name}</Text>
+                          {isSelected && (
+                            <View style={[styles.selectedCheck, { backgroundColor: method.color }]}>
+                              <ShieldCheck size={12} color="#fff" />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
                 
                 <TouchableOpacity 
                   onPress={handleContribute}
-                  style={[styles.joinBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
+                  disabled={isProcessing}
+                  style={[
+                    styles.joinBtn, 
+                    { backgroundColor: theme.primary, shadowColor: theme.primary },
+                    isProcessing && { opacity: 0.7 }
+                  ]}
                 >
-                  <Text style={styles.joinBtnText}>Join Contribution</Text>
+                  {isProcessing ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.joinBtnText}>Authorize Payment</Text>
+                  )}
                 </TouchableOpacity>
+
+                <View style={styles.secureBadge}>
+                  <ShieldCheck size={14} color={theme.accent} />
+                  <Text style={[styles.secureText, { color: theme.subText }]}>Secure 256-bit SSL encrypted payment</Text>
+                </View>
               </View>
             </View>
           </MotiView>
         )}
       </ScrollView>
+
+      {/* Start Pool Modal */}
+      <Modal
+        visible={isPoolModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsPoolModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <MotiView 
+            from={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={[styles.modalContent, { backgroundColor: theme.card }]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Start a Gift Pool</Text>
+              <TouchableOpacity onPress={() => setIsPoolModalVisible(false)}>
+                <X size={24} color={theme.subText} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalForm}>
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: theme.subText }]}>Celebrant Name</Text>
+                <TextInput
+                  placeholder="Who is this for?"
+                  placeholderTextColor={theme.subText}
+                  style={[styles.input, { backgroundColor: theme.itemBg, color: theme.text, borderColor: theme.border }]}
+                  value={newCelebrant}
+                  onChangeText={setNewCelebrant}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: theme.subText }]}>Gift Name</Text>
+                <TextInput
+                  placeholder="What are we buying?"
+                  placeholderTextColor={theme.subText}
+                  style={[styles.input, { backgroundColor: theme.itemBg, color: theme.text, borderColor: theme.border }]}
+                  value={newGift}
+                  onChangeText={setNewGift}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: theme.subText }]}>Target Amount (₵)</Text>
+                <TextInput
+                  placeholder="e.g. 500"
+                  placeholderTextColor={theme.subText}
+                  keyboardType="numeric"
+                  style={[styles.input, { backgroundColor: theme.itemBg, color: theme.text, borderColor: theme.border }]}
+                  value={newTarget}
+                  onChangeText={setNewTarget}
+                />
+              </View>
+
+              <TouchableOpacity 
+                onPress={handleCreatePool}
+                style={[styles.createBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
+              >
+                <Text style={styles.createBtnText}>Create Pool</Text>
+              </TouchableOpacity>
+            </View>
+          </MotiView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -484,6 +691,112 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   joinBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  paymentMethodSection: {
+    marginTop: 8,
+  },
+  paymentGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  methodBtn: {
+    width: '48%',
+    height: 100,
+    borderRadius: 24,
+    borderWidth: 2,
+    padding: 16,
+    gap: 8,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  methodIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  methodName: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  selectedCheck: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secureBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 16,
+  },
+  secureText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    borderRadius: 32,
+    padding: 24,
+    gap: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  modalForm: {
+    gap: 16,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  input: {
+    height: 56,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  createBtn: {
+    height: 60,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  createBtnText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '900',

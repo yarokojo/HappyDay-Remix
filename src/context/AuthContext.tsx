@@ -13,13 +13,14 @@ import {
   updateDoc,
   serverTimestamp 
 } from 'firebase/firestore';
-import { auth, db, googleProvider } from '../lib/firebase';
+import { auth, db, googleProvider, handleFirestoreError, OperationType } from '../lib/firebase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
   isSigningIn: boolean;
+  error: string | null;
   signIn: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const ADMIN_EMAIL = 'passtyyaro302@gmail.com';
 
@@ -42,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Sync user profile to Firestore in background
         const syncProfile = async () => {
+          const userPath = `users/${user.uid}`;
           try {
             const userRef = doc(db, 'users', user.uid);
             const userDoc = await getDoc(userRef);
@@ -51,18 +54,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 uid: user.uid,
                 displayName: user.displayName || 'Guest User',
                 photoURL: user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop',
-                email: user.email,
+                email: user.email || 'no-email@provided.com',
                 createdAt: serverTimestamp(),
                 lastSeen: serverTimestamp()
+              }).catch(e => {
+                handleFirestoreError(e, OperationType.CREATE, userPath);
               });
             } else {
               // Update last seen in background
               await updateDoc(userRef, {
                 lastSeen: serverTimestamp()
+              }).catch(e => {
+                handleFirestoreError(e, OperationType.UPDATE, userPath);
               });
             }
           } catch (err) {
-            console.error("Profile sync error:", err);
+            console.error("Profile sync error for user:", user.uid, err);
           }
         };
         syncProfile();
@@ -78,10 +85,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async () => {
     setIsSigningIn(true);
+    setError(null);
     try {
+      console.log("Initiating Google Sign In...");
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Auth Error:", error);
+      console.log("Sign In successful");
+    } catch (err: any) {
+      console.error("Auth Error details:", err);
+      let message = "Failed to sign in. Please try again.";
+      
+      if (err.message?.includes('apiKey') || err.code === 'auth/api-key-not-valid' || err.message?.includes('API key')) {
+        message = "Firebase API Key is invalid or restricted. Please go to Settings (gear icon) and ensure Firebase is correctly set up, or try running 'Initialize Firebase' again.";
+      } else if (err.code === 'auth/popup-blocked') {
+        message = "Sign-in popup was blocked by your browser. Please allow popups for this site.";
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        message = "Sign-in window was closed before finishing.";
+      } else if (err.code === 'auth/unauthorized-domain') {
+        message = "This domain is not authorized for Google Sign-In. Please check Firebase console.";
+      } else if (err.code === 'auth/network-request-failed') {
+        message = "Network error or Firebase blocked. Check your internet connection or any ad-blockers.";
+      }
+      setError(message);
     } finally {
       setIsSigningIn(false);
     }
@@ -96,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, isSigningIn, signIn, logout }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, isSigningIn, error, signIn, logout }}>
       {children}
     </AuthContext.Provider>
   );

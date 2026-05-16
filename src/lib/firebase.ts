@@ -27,18 +27,45 @@ import {
   signOut,
   User
 } from 'firebase/auth';
-import firebaseConfig from '../../firebase-applet-config.json';
+// Load config lazily or safely
+import firebaseConfigImport from '../../firebase-applet-config.json';
+const firebaseConfig: any = firebaseConfigImport;
 
-const app = initializeApp(firebaseConfig);
+let firebaseApp: any = null;
 
-// Initialize Firestore with specific settings if needed
-export const db = initializeFirestore(app, {
+function getFirebaseApp() {
+  if (!firebaseApp) {
+    console.log("Firebase config check:", {
+      hasApiKey: !!firebaseConfig.apiKey,
+      apiKeyLength: firebaseConfig.apiKey?.length,
+      projectId: firebaseConfig.projectId
+    });
+
+    if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes('REPLACE_ME') || firebaseConfig.apiKey.length < 20) {
+      const msg = 'Firebase API Key is missing, invalid, or too short in firebase-applet-config.json';
+      console.error(msg, firebaseConfig);
+      throw new Error(msg);
+    }
+    
+    try {
+      firebaseApp = initializeApp(firebaseConfig);
+    } catch (err) {
+      console.error("Firebase initializeApp failure:", err);
+      throw err;
+    }
+  }
+  return firebaseApp;
+}
+
+// Export instances that are initialized on demand
+// Using a slightly more resilient pattern
+export const db = initializeFirestore(getFirebaseApp(), {
   localCache: {
     kind: 'persistent'
   }
-}, firebaseConfig.firestoreDatabaseId);
+}, firebaseConfig.firestoreDatabaseId );
 
-export const auth = getAuth(app);
+export const auth = getAuth(getFirebaseApp());
 export const googleProvider = new GoogleAuthProvider();
 
 // Validation test connection

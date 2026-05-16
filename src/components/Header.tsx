@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, Platform, useWindowDimensions, ScrollView } from "react-native";
-import { Bell, Search, PlusCircle, X, Clock, ArrowRight, TrendingUp } from "lucide-react-native";
+import { Bell, Search, PlusCircle, X, Clock, ArrowRight, TrendingUp, Gift } from "lucide-react-native";
 import { MotiView, AnimatePresence } from "moti";
 import { useTheme } from "../context/ThemeContext";
 
@@ -53,11 +53,9 @@ export default function Header({ onNavigate, searchQuery, onSearchChange, userPr
       <View style={styles.contentWrap}>
         <View style={styles.left}>
           <TouchableOpacity onPress={() => onNavigate?.('home')} style={styles.logoWrapper}>
-            <Image 
-              source={{ uri: "https://img.icons8.com/color/96/birthday-cake.png" }} 
-              style={styles.logo} 
-              resizeMode="contain"
-            />
+            <View style={[styles.logoIconContainer, { backgroundColor: theme.primary + '15' }]}>
+              <Gift size={24} color={theme.primary} />
+            </View>
           </TouchableOpacity>
           {!isSearching && (
             <TouchableOpacity onPress={() => onNavigate?.('home')}>
@@ -342,8 +340,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   logoWrapper: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
