@@ -12,7 +12,10 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.8",
     "babel-preset-expo": "latest",
+    "base64-arraybuffer": "^1.0.2",
+    "browserify-zlib": "^0.2.0",
     "expo": "~54.0.0",
     "expo-av": "~16.0.0",
     "expo-blur": "~15.0.0",
@@ -22,7 +25,6 @@
     "expo-linear-gradient": "~14.0.0",
     "expo-screen-orientation": "^55.0.14",
     "expo-status-bar": "~2.1.0",
-    "firebase": "^12.13.0",
     "lucide-react-native": "^0.479.0",
     "moti": "^0.30.0",
     "react": "19.0.0",
@@ -33,10 +35,11 @@
     "react-native-safe-area-context": "latest",
     "react-native-screens": "latest",
     "react-native-web": "latest",
-    "react-native-webview": "latest"
+    "react-native-webview": "latest",
+    "readable-stream": "^4.7.0",
+    "util": "^0.12.5"
   },
   "devDependencies": {
-    "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@types/react": "~18.3.12",
     "@types/react-dom": "~18.3.1",
     "typescript": "~5.8.2"

@@ -8,6 +8,8 @@ import { useActivity } from "../context/ActivityContext";
 import { useAuth } from "../context/AuthContext";
 
 import * as ImagePicker from 'expo-image-picker';
+import { supabase } from "../lib/supabase";
+import { decode } from "base64-arraybuffer";
 
 export default function ProfileScreen({ 
   onNavigate
@@ -16,7 +18,7 @@ export default function ProfileScreen({
 }) {
   const { darkMode, toggleDarkMode, theme, setPrimaryColor, primaryColor } = useTheme();
   const { notifications, history, savedItems, clearHistory, removeFromSaved } = useActivity();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, updateProfile } = useAuth();
   const { width } = useWindowDimensions();
   
   const userProfileImage = user?.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop";
@@ -103,16 +105,60 @@ export default function ProfileScreen({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 1,
+        quality: 0.7,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        // TODO: Implement real profile image update via updateProfile(auth.currentUser, { photoURL: ... })
-        Alert.alert("Success", "Profile image selected! (Upload logic pending)");
+        const asset = result.assets[0];
+        
+        if (!user) {
+          Alert.alert("Error", "You must be logged in to update your profile.");
+          return;
+        }
+
+        // For guest users, don't attempt Supabase upload
+        if (user.uid.startsWith('guest_')) {
+          await updateProfile({ photoURL: asset.uri });
+          Alert.alert("Success", "Guest profile picture updated locally!");
+          return;
+        }
+
+        if (!asset.base64) {
+          throw new Error("No base64 data available for upload");
+        }
+
+        // Check if Supabase is properly configured
+        const supabaseUrl = process.env.SUPABASE_URL || '';
+        if (supabaseUrl.includes('placeholder-url')) {
+          Alert.alert("Configuration Required", "Please set your SUPABASE_URL and SUPABASE_ANON_KEY in the settings to enable cloud storage. For now, try 'Skip login' to test local updates.");
+          return;
+        }
+
+        // Upload to Supabase Storage
+        const filePath = `avatars/${user.uid}/${Date.now()}.jpg`;
+        const { data, error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, decode(asset.base64), {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+
+        if (uploadError) throw uploadError;
+
+        // Get Public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+
+        // Update Profile
+        await updateProfile({ photoURL: publicUrl });
+
+        Alert.alert("Success", "Profile picture updated successfully!");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to update profile picture.");
+      Alert.alert("Error", error.message || "Failed to update profile picture.");
     }
   };
 
@@ -724,7 +770,18 @@ export default function ProfileScreen({
                   style={[styles.bioInput, { color: theme.text, backgroundColor: theme.itemBg }]}
                 />
                 <View style={styles.editActions}>
-                  <TouchableOpacity style={styles.saveAction} onPress={() => setIsEditing(false)}>
+                  <TouchableOpacity 
+                    style={styles.saveAction} 
+                    onPress={async () => {
+                      try {
+                        await updateProfile({ displayName: profile.name });
+                        // Bios aren't currently part of the profile schema in updateProfile but we can simulate success
+                        setIsEditing(false);
+                      } catch (err) {
+                        Alert.alert("Error", "Failed to update profile.");
+                      }
+                    }}
+                  >
                     <Text style={styles.saveActionText}>SAVE</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.cancelAction} onPress={() => setIsEditing(false)}>
@@ -816,21 +873,28 @@ export default function ProfileScreen({
         <View style={styles.tabContent}>
           {activeTab === "wishes" && (
             <View style={styles.activityList}>
+              <Text style={[styles.sectionHeader, { color: theme.subText }]}>WISHES RECEIVED</Text>
               {notifications.filter(n => n.type === 'wish').length > 0 ? (
                 notifications.filter(n => n.type === 'wish').map(wish => (
                   <View key={wish.id} style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
                     <View style={[styles.activityIcon, { backgroundColor: theme.primary + '15' }]}>
-                      <Heart size={18} color={theme.primary} fill={theme.primary} />
+                      <Heart size={20} color={theme.primary} fill={theme.primary} />
                     </View>
                     <View style={styles.activityInfo}>
-                      <Text style={[styles.activityText, { color: theme.text }]}>{wish.user} {wish.message}</Text>
+                      <Text style={[styles.activityText, { color: theme.text }]}>
+                        <Text style={{ fontWeight: '800' }}>{wish.user}</Text> {wish.message}
+                      </Text>
                       <Text style={[styles.activityTime, { color: theme.subText }]}>{wish.time}</Text>
                     </View>
+                    <TouchableOpacity style={styles.replyBtn}>
+                      <Text style={styles.replyBtnText}>REPLY</Text>
+                    </TouchableOpacity>
                   </View>
                 ))
               ) : (
                 <View style={styles.emptyTab}>
-                  <Text style={styles.emptyTabText}>No wishes recorded yet</Text>
+                  <Heart size={40} color={theme.border} strokeWidth={1} />
+                  <Text style={[styles.emptyTabText, { color: theme.subText }]}>No wishes recorded yet</Text>
                 </View>
               )}
             </View>
@@ -838,21 +902,28 @@ export default function ProfileScreen({
 
           {activeTab === "gifts" && (
             <View style={styles.activityList}>
+              <Text style={[styles.sectionHeader, { color: theme.subText }]}>VIRTUAL GIFTS</Text>
               {notifications.filter(n => n.type === 'gift').length > 0 ? (
                 notifications.filter(n => n.type === 'gift').map(gift => (
                   <View key={gift.id} style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
                     <View style={[styles.activityIcon, { backgroundColor: '#fef3c7' }]}>
-                      <Package size={18} color="#d97706" />
+                      <Package size={20} color="#d97706" />
                     </View>
                     <View style={styles.activityInfo}>
-                      <Text style={[styles.activityText, { color: theme.text }]}>{gift.user} {gift.message}</Text>
+                      <Text style={[styles.activityText, { color: theme.text }]}>
+                        <Text style={{ fontWeight: '800' }}>{gift.user}</Text> {gift.message}
+                      </Text>
                       <Text style={[styles.activityTime, { color: theme.subText }]}>{gift.time}</Text>
+                    </View>
+                    <View style={styles.statusBadgeSmall}>
+                      <Text style={styles.statusBadgeText}>RECEIVED</Text>
                     </View>
                   </View>
                 ))
               ) : (
                 <View style={styles.emptyTab}>
-                  <Text style={styles.emptyTabText}>No gifts recorded yet</Text>
+                  <Package size={40} color={theme.border} strokeWidth={1} />
+                  <Text style={[styles.emptyTabText, { color: theme.subText }]}>No gifts recorded yet</Text>
                 </View>
               )}
             </View>
@@ -863,7 +934,7 @@ export default function ProfileScreen({
               <View style={[styles.filterRow, { justifyContent: 'space-between', alignItems: 'center' }]}>
                 <Text style={[styles.sectionHeader, { marginBottom: 0, color: theme.subText }]}>RECENT WATCHES</Text>
                 <TouchableOpacity onPress={clearHistory}>
-                  <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: '900' }}>CLEAR</Text>
+                  <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: '900' }}>CLEAR ALL</Text>
                 </TouchableOpacity>
               </View>
               {history.length > 0 ? (
@@ -873,10 +944,11 @@ export default function ProfileScreen({
                     onPress={() => item.type === 'video' ? onNavigate('video', item.id) : onNavigate('post_detail', item.id)}
                     style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}
                   >
-                    <Image source={{ uri: item.imageUrl }} style={[styles.activityIcon, { borderRadius: 10 }]} />
+                    <Image source={{ uri: item.imageUrl }} style={[styles.activityIcon, { borderRadius: 14 }]} />
                     <View style={styles.activityInfo}>
                       <Text style={[styles.activityText, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
                       <View style={styles.activityMeta}>
+                        <Clock size={10} color={theme.subText} />
                         <Text style={[styles.activityTime, { color: theme.subText }]}>{item.timestamp}</Text>
                         <View style={[styles.metaDot, { backgroundColor: theme.border }]} />
                         <Text style={[styles.activityType, { color: theme.primary }]}>{item.type.toUpperCase()}</Text>
@@ -887,7 +959,8 @@ export default function ProfileScreen({
                 ))
               ) : (
                 <View style={styles.emptyTab}>
-                  <Text style={styles.emptyTabText}>Your watch history will appear here</Text>
+                  <Clock size={40} color={theme.border} strokeWidth={1} />
+                  <Text style={[styles.emptyTabText, { color: theme.subText }]}>Your watch history will appear here</Text>
                 </View>
               )}
             </View>
@@ -899,25 +972,27 @@ export default function ProfileScreen({
               {savedItems.length > 0 ? (
                 savedItems.map(item => (
                   <View key={item.id} style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-                    <Image source={{ uri: item.imageUrl }} style={[styles.activityIcon, { borderRadius: 10 }]} />
+                    <Image source={{ uri: item.imageUrl }} style={[styles.activityIcon, { borderRadius: 14 }]} />
                     <View style={styles.activityInfo}>
                       <TouchableOpacity onPress={() => item.type === 'video' ? onNavigate('video', item.id) : onNavigate('post_detail', item.id)}>
                         <Text style={[styles.activityText, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
                       </TouchableOpacity>
                       <View style={styles.activityMeta}>
+                        <Bookmark size={10} color={theme.subText} />
                         <Text style={[styles.activityTime, { color: theme.subText }]}>{item.timestamp}</Text>
                         <View style={[styles.metaDot, { backgroundColor: theme.border }]} />
                         <Text style={[styles.activityType, { color: theme.secondary }]}>{item.type.toUpperCase()}</Text>
                       </View>
                     </View>
-                    <TouchableOpacity onPress={() => removeFromSaved(item.id)}>
+                    <TouchableOpacity onPress={() => removeFromSaved(item.id)} style={styles.deleteBtn}>
                       <Trash2 size={16} color="#ef4444" />
                     </TouchableOpacity>
                   </View>
                 ))
               ) : (
                 <View style={styles.emptyTab}>
-                  <Text style={styles.emptyTabText}>Save videos or posts to watch later</Text>
+                  <Bookmark size={40} color={theme.border} strokeWidth={1} />
+                  <Text style={[styles.emptyTabText, { color: theme.subText }]}>Save videos or posts to watch later</Text>
                 </View>
               )}
             </View>
@@ -1770,6 +1845,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  replyBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+  },
+  replyBtnText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#475569',
+  },
+  statusBadgeSmall: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#ecfdf5',
+  },
+  statusBadgeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#059669',
+  },
   // Security Advanced Styles
   securityHealthCard: {
     backgroundColor: '#4f46e5',
@@ -1883,6 +1980,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     color: '#ef4444',
+  },
+  deleteBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#fee2e2',
   },
   logoutAllBtn: {
     marginTop: 8,

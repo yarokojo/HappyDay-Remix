@@ -18,6 +18,7 @@ interface FeedCardProps {
   onAddComment: (content: string) => void;
   onDelete: () => void;
   onDeleteComment: (commentId: string) => void;
+  onIncrementViews: () => void;
   onToggleFollow: () => void;
   onSelect: () => void;
   onRepost: () => void;
@@ -34,6 +35,7 @@ export default function FeedCard({
   onAddComment,
   onDelete,
   onDeleteComment,
+  onIncrementViews,
   onToggleFollow,
   onSelect,
   onRepost,
@@ -87,6 +89,10 @@ export default function FeedCard({
   const handleDoubleTap = useCallback(() => {
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
+    
+    // Increment views on any tap
+    onIncrementViews();
+
     if (lastTap && (now - lastTap) < DOUBLE_TAP_DELAY) {
       if (!hasLiked) {
         handleLike();
@@ -341,6 +347,11 @@ export default function FeedCard({
                 <Repeat size={20} color={hasReposted ? "#10b981" : theme.subText} />
                 <Text style={[styles.interactionValue, { color: theme.subText }, hasReposted && { color: '#10b981' }]}>{post.reposts}</Text>
               </TouchableOpacity>
+
+              <View style={styles.interactionButton}>
+                <Eye size={20} color={theme.subText} />
+                <Text style={[styles.interactionValue, { color: theme.subText }]}>{post.views}</Text>
+              </View>
             </View>
 
             <View style={styles.rightInteractions}>

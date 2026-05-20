@@ -27,6 +27,7 @@ interface PostDetailScreenProps {
   onToggleFollow: (authorHandle: string) => void;
   onRepost: (postId: string) => void;
   onToggleBookmark: (postId: string) => void;
+  onIncrementViews: (postId: string) => void;
   onNavigate: (screen: string, id?: string) => void;
 }
 
@@ -43,6 +44,7 @@ export default function PostDetailScreen({
   onToggleFollow,
   onRepost,
   onToggleBookmark,
+  onIncrementViews,
   onNavigate
 }: PostDetailScreenProps) {
   const { theme } = useTheme();
@@ -82,6 +84,7 @@ export default function PostDetailScreen({
             onSelect={() => {}} 
             onRepost={() => onRepost(post.id)}
             onToggleBookmark={() => onToggleBookmark(post.id)}
+            onIncrementViews={() => onIncrementViews(post.id)}
             onNavigate={onNavigate}
           />
         </View>
