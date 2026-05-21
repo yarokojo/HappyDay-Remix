@@ -115,49 +115,202 @@ export default function VideoScreen({ reels = [], onBack, onNavigate }: { reels?
         onMomentumScrollEnd={onMomentumScrollEnd}
         style={styles.scrollView}
       >
-        {reels.map((video, index) => (
-          <View key={video.id} style={[styles.videoPage, { height: containerHeight, width: containerWidth }]}>
-            {/* Aspect Ratio Container for Video */}
-            <View style={[styles.videoContainer, { 
-              width: containerWidth > 600 ? 450 : containerWidth,
-              alignSelf: 'center',
-              backgroundColor: '#000'
-            }]}>
-              {/* Video Player */}
-              <Video
-                source={{ uri: video.videoUrl }}
-                style={StyleSheet.absoluteFill}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay={index === activeIndex}
-                isLooping
-                isMuted={muted}
-                posterSource={{ uri: video.poster }}
-                usePoster
-              />
-              <TouchableOpacity 
-                activeOpacity={1} 
-                onPress={(e) => handleDoubleTap(video.id, e)} 
-                style={StyleSheet.absoluteFill}
-              />
-              <View style={styles.gradientOverlay} pointerEvents="none" />
+        {reels.length > 0 ? (
+          reels.map((video, index) => (
+            <View key={video.id} style={[styles.videoPage, { height: containerHeight, width: containerWidth }]}>
+              {/* Aspect Ratio Container for Video */}
+              <View style={[styles.videoContainer, { 
+                width: containerWidth > 600 ? 450 : containerWidth,
+                alignSelf: 'center',
+                backgroundColor: '#000'
+              }]}>
+                {/* Video Player */}
+                <Video
+                  source={{ uri: video.videoUrl }}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode={ResizeMode.COVER}
+                  shouldPlay={index === activeIndex}
+                  isLooping
+                  isMuted={muted}
+                  posterSource={{ uri: video.poster }}
+                  usePoster
+                />
+                <TouchableOpacity 
+                  activeOpacity={1} 
+                  onPress={(e) => handleDoubleTap(video.id, e)} 
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={styles.gradientOverlay} pointerEvents="none" />
 
-              {/* Double Tap Heart */}
-              <AnimatePresence>
-                {showHeart && (
-                  <MotiView
-                    key={showHeart.id}
-                    from={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1.5 }}
-                    exit={{ opacity: 0, scale: 2 }}
-                    style={[styles.heartOverlay, { left: showHeart.x, top: showHeart.y }]}
+                {/* Double Tap Heart */}
+                <AnimatePresence>
+                  {showHeart && (
+                    <MotiView
+                      key={showHeart.id}
+                      from={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1.5 }}
+                      exit={{ opacity: 0, scale: 2 }}
+                      style={[styles.heartOverlay, { left: showHeart.x, top: showHeart.y }]}
+                    >
+                      <Heart size={80} color="#ef4444" fill="#ef4444" />
+                    </MotiView>
+                  )}
+                </AnimatePresence>
+
+                {/* Top Bar */}
+                <View style={styles.topBar}>
+                  <View style={styles.topBarLeft}>
+                    {onBack && (
+                      <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+                        <BlurView intensity={20} tint="dark" style={styles.blurPad}>
+                          <ArrowLeft size={20} color="#fff" />
+                        </BlurView>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <View style={styles.topBarRight}>
+                    <TouchableOpacity onPress={() => onNavigate?.('post', undefined, 'video')} style={styles.cameraBtn}>
+                      <BlurView intensity={20} tint="dark" style={styles.blurPad}>
+                        <Camera size={20} color="#fff" />
+                      </BlurView>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setMuted(!muted)} style={styles.muteBtn}>
+                      <BlurView intensity={20} tint="dark" style={styles.blurPad}>
+                        {muted ? <VolumeX size={20} color="#fff" /> : <Volume2 size={20} color="#fff" />}
+                      </BlurView>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Right Sidebar */}
+                <View style={styles.sidebar}>
+                  <TouchableOpacity 
+                    activeOpacity={0.8}
+                    onPress={() => toggleFollow(video.handle)}
+                    style={styles.authorSection}
                   >
-                    <Heart size={80} color="#ef4444" fill="#ef4444" />
-                  </MotiView>
-                )}
-              </AnimatePresence>
+                    <Image source={{ uri: video.avatar }} style={styles.sidebarAvatar} />
+                    <MotiView 
+                      animate={{ 
+                        scale: followedUsers.has(video.handle) ? 1.1 : 1,
+                        backgroundColor: followedUsers.has(video.handle) ? "#10b981" : "#ef4444",
+                        rotate: followedUsers.has(video.handle) ? '360deg' : '0deg'
+                      }}
+                      transition={{ type: 'spring', damping: 12 }}
+                      style={styles.followBadge}
+                    >
+                      {followedUsers.has(video.handle) ? (
+                        <Check size={10} color="#fff" strokeWidth={4} />
+                      ) : (
+                        <Plus size={10} color="#fff" strokeWidth={4} />
+                      )}
+                    </MotiView>
+                  </TouchableOpacity>
 
-              {/* Top Bar */}
-              <View style={styles.topBar}>
+                  <TouchableOpacity onPress={() => toggleLike(video.id)} style={styles.sidebarBtn}>
+                    <Heart size={28} color={likedVideos.has(video.id) ? "#ef4444" : "#fff"} fill={likedVideos.has(video.id) ? "#ef4444" : "none"} />
+                    <Text style={styles.sidebarLabel}>{video.likes}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={() => setShowComments(true)} style={styles.sidebarBtn}>
+                    <MessageCircle size={28} color="#fff" />
+                    <Text style={styles.sidebarLabel}>{video.comments}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={handleCelebrate} style={styles.sidebarBtn}>
+                    <PartyPopper size={28} color="#fbbf24" />
+                    <Text style={styles.sidebarLabel}>PARTY</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.giftWrapper}>
+                    <TouchableOpacity onPress={() => setShowGifts(!showGifts)} style={styles.giftBtn}>
+                      <MotiView 
+                        animate={{ scale: [1, 1.1, 1], rotate: ['0deg', '5deg', '-5deg', '0deg'] }}
+                        transition={{ loop: true, duration: 2000 }}
+                        style={[styles.giftCircle, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
+                      >
+                        <GiftIcon size={24} color="#fff" />
+                      </MotiView>
+                      <Text style={styles.sidebarLabel}>GIFT</Text>
+                    </TouchableOpacity>
+
+                    <AnimatePresence>
+                      {showGifts && (
+                        <MotiView 
+                          from={{ opacity: 0, scale: 0.5, translateX: 50 }}
+                          animate={{ opacity: 1, scale: 1, translateX: 0 }}
+                          exit={{ opacity: 0, scale: 0.5, translateX: 50 }}
+                          style={styles.giftMenu}
+                        >
+                          <BlurView intensity={60} tint="dark" style={styles.giftMenuBlur}>
+                            {VIRTUAL_GIFTS.map((gift) => (
+                              <TouchableOpacity 
+                                key={gift.id}
+                                onPress={() => { setShowGifts(false); handleCelebrate(); }}
+                                style={styles.giftMenuItem}
+                              >
+                                <Text style={gift.icon.length > 2 ? { fontSize: 24 } : styles.giftEmoji}>{gift.icon}</Text>
+                                <View>
+                                  <Text style={styles.giftItemLabel}>{gift.label}</Text>
+                                  <Text style={[styles.giftItemPrice, { color: theme.secondary }]}>{gift.price}</Text>
+                                </View>
+                              </TouchableOpacity>
+                            ))}
+                          </BlurView>
+                        </MotiView>
+                      )}
+                    </AnimatePresence>
+                  </View>
+
+                  <TouchableOpacity onPress={() => setShowShare(true)} style={styles.sidebarBtn}>
+                    <Share2 size={28} color="#fff" />
+                    <Text style={styles.sidebarLabel}>SHARE</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Bottom Info */}
+                <MotiView 
+                  key={`info-${video.id}`}
+                  from={{ opacity: 0, translateY: 30 }}
+                  animate={{ 
+                    opacity: index === activeIndex ? 1 : 0, 
+                    translateY: index === activeIndex ? 0 : 30 
+                  }}
+                  transition={{ type: 'spring', damping: 15 }}
+                  style={styles.bottomInfo}
+                >
+                  <View style={styles.authorRow}>
+                    <Text style={styles.authorHandle}>{video.handle}</Text>
+                    {video.isBirthday && (
+                      <View style={styles.birthdayTag}>
+                        <Text style={styles.birthdayTagText}>BIRTHDAY</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.descText} numberOfLines={3}>{video.description}</Text>
+                  <View style={styles.footerRow}>
+                    <BlurView intensity={20} tint="dark" style={styles.musicTag}>
+                      <Music size={12} color="#fff" />
+                      <Text style={styles.musicText}>{video.music}</Text>
+                    </BlurView>
+                  </View>
+                </MotiView>
+
+                {/* Video Progress Bar */}
+                <View style={styles.progressBarContainer}>
+                   <MotiView 
+                     from={{ width: '0%' }}
+                     animate={{ width: index === activeIndex ? '100%' : '0%' }}
+                     transition={{ type: 'timing', duration: 15000, loop: true }}
+                     style={[styles.progressBar, { backgroundColor: theme.primary }]}
+                   />
+                </View>
+              </View>
+            </View>
+          ))
+        ) : (
+          <View style={[styles.emptyContainer, { height: containerHeight, width: containerWidth }]}>
+             <View style={styles.topBar}>
                 <View style={styles.topBarLeft}>
                   {onBack && (
                     <TouchableOpacity onPress={onBack} style={styles.backBtn}>
@@ -167,146 +320,18 @@ export default function VideoScreen({ reels = [], onBack, onNavigate }: { reels?
                     </TouchableOpacity>
                   )}
                 </View>
-                <View style={styles.topBarRight}>
-                  <TouchableOpacity onPress={() => onNavigate?.('post', undefined, 'video')} style={styles.cameraBtn}>
-                    <BlurView intensity={20} tint="dark" style={styles.blurPad}>
-                      <Camera size={20} color="#fff" />
-                    </BlurView>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setMuted(!muted)} style={styles.muteBtn}>
-                    <BlurView intensity={20} tint="dark" style={styles.blurPad}>
-                      {muted ? <VolumeX size={20} color="#fff" /> : <Volume2 size={20} color="#fff" />}
-                    </BlurView>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Right Sidebar */}
-              <View style={styles.sidebar}>
-                <TouchableOpacity 
-                  activeOpacity={0.8}
-                  onPress={() => toggleFollow(video.handle)}
-                  style={styles.authorSection}
-                >
-                  <Image source={{ uri: video.avatar }} style={styles.sidebarAvatar} />
-                  <MotiView 
-                    animate={{ 
-                      scale: followedUsers.has(video.handle) ? 1.1 : 1,
-                      backgroundColor: followedUsers.has(video.handle) ? "#10b981" : "#ef4444",
-                      rotate: followedUsers.has(video.handle) ? '360deg' : '0deg'
-                    }}
-                    transition={{ type: 'spring', damping: 12 }}
-                    style={styles.followBadge}
-                  >
-                    {followedUsers.has(video.handle) ? (
-                      <Check size={10} color="#fff" strokeWidth={4} />
-                    ) : (
-                      <Plus size={10} color="#fff" strokeWidth={4} />
-                    )}
-                  </MotiView>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => toggleLike(video.id)} style={styles.sidebarBtn}>
-                  <Heart size={28} color={likedVideos.has(video.id) ? "#ef4444" : "#fff"} fill={likedVideos.has(video.id) ? "#ef4444" : "none"} />
-                  <Text style={styles.sidebarLabel}>{video.likes}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setShowComments(true)} style={styles.sidebarBtn}>
-                  <MessageCircle size={28} color="#fff" />
-                  <Text style={styles.sidebarLabel}>{video.comments}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={handleCelebrate} style={styles.sidebarBtn}>
-                  <PartyPopper size={28} color="#fbbf24" />
-                  <Text style={styles.sidebarLabel}>PARTY</Text>
-                </TouchableOpacity>
-
-                <View style={styles.giftWrapper}>
-                  <TouchableOpacity onPress={() => setShowGifts(!showGifts)} style={styles.giftBtn}>
-                    <MotiView 
-                      animate={{ scale: [1, 1.1, 1], rotate: ['0deg', '5deg', '-5deg', '0deg'] }}
-                      transition={{ loop: true, duration: 2000 }}
-                      style={[styles.giftCircle, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
-                    >
-                      <GiftIcon size={24} color="#fff" />
-                    </MotiView>
-                    <Text style={styles.sidebarLabel}>GIFT</Text>
-                  </TouchableOpacity>
-
-                  <AnimatePresence>
-                    {showGifts && (
-                      <MotiView 
-                        from={{ opacity: 0, scale: 0.5, translateX: 50 }}
-                        animate={{ opacity: 1, scale: 1, translateX: 0 }}
-                        exit={{ opacity: 0, scale: 0.5, translateX: 50 }}
-                        style={styles.giftMenu}
-                      >
-                        <BlurView intensity={60} tint="dark" style={styles.giftMenuBlur}>
-                          {VIRTUAL_GIFTS.map((gift) => (
-                            <TouchableOpacity 
-                              key={gift.id}
-                              onPress={() => { setShowGifts(false); handleCelebrate(); }}
-                              style={styles.giftMenuItem}
-                            >
-                              <Text style={styles.giftEmoji}>{gift.icon}</Text>
-                              <View>
-                                <Text style={styles.giftItemLabel}>{gift.label}</Text>
-                                <Text style={[styles.giftItemPrice, { color: theme.secondary }]}>{gift.price}</Text>
-                              </View>
-                            </TouchableOpacity>
-                          ))}
-                        </BlurView>
-                      </MotiView>
-                    )}
-                  </AnimatePresence>
-                </View>
-
-                <TouchableOpacity onPress={() => setShowShare(true)} style={styles.sidebarBtn}>
-                  <Share2 size={28} color="#fff" />
-                  <Text style={styles.sidebarLabel}>SHARE</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Bottom Info */}
-              <MotiView 
-                key={`info-${video.id}`}
-                from={{ opacity: 0, translateY: 30 }}
-                animate={{ 
-                  opacity: index === activeIndex ? 1 : 0, 
-                  translateY: index === activeIndex ? 0 : 30 
-                }}
-                transition={{ type: 'spring', damping: 15 }}
-                style={styles.bottomInfo}
-              >
-                <View style={styles.authorRow}>
-                  <Text style={styles.authorHandle}>{video.handle}</Text>
-                  {video.isBirthday && (
-                    <View style={styles.birthdayTag}>
-                      <Text style={styles.birthdayTagText}>BIRTHDAY</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.descText} numberOfLines={3}>{video.description}</Text>
-                <View style={styles.footerRow}>
-                  <BlurView intensity={20} tint="dark" style={styles.musicTag}>
-                    <Music size={12} color="#fff" />
-                    <Text style={styles.musicText}>{video.music}</Text>
-                  </BlurView>
-                </View>
-              </MotiView>
-
-              {/* Video Progress Bar */}
-              <View style={styles.progressBarContainer}>
-                 <MotiView 
-                   from={{ width: '0%' }}
-                   animate={{ width: index === activeIndex ? '100%' : '0%' }}
-                   transition={{ type: 'timing', duration: 15000, loop: true }}
-                   style={[styles.progressBar, { backgroundColor: theme.primary }]}
-                 />
-              </View>
-            </View>
+             </View>
+             <Sparkles size={48} color={theme.primary} />
+             <Text style={styles.emptyText}>No celebration videos yet.</Text>
+             <Text style={styles.emptySub}>Be the first to share a video!</Text>
+             <TouchableOpacity 
+               onPress={() => onNavigate?.('post', undefined, 'video')}
+               style={[styles.createBtn, { backgroundColor: theme.primary }]}
+             >
+               <Text style={styles.createBtnText}>START CELEBRATING</Text>
+             </TouchableOpacity>
           </View>
-        ))}
+        )}
       </ScrollView>
 
       {/* Comments Modal */}
@@ -760,6 +785,37 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     textTransform: 'uppercase',
+  },
+  emptyContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+    padding: 20,
+  },
+  emptyText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  emptySub: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  createBtn: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 30,
+  },
+  createBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   liveTag: {
     flexDirection: 'row',

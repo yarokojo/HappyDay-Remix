@@ -10,7 +10,6 @@ import { Video, ResizeMode } from "expo-av";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { useActivity } from "../context/ActivityContext";
-import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -92,10 +91,8 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
     if (selectedStoryIndex !== null) {
       if (selectedStoryIndex < stories.length - 1) {
         setSelectedStoryId(stories[selectedStoryIndex + 1].id);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } else {
         setSelectedStoryId(null);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
     }
   };
@@ -104,10 +101,8 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
     if (selectedStoryIndex !== null) {
       if (selectedStoryIndex > 0) {
         setSelectedStoryId(stories[selectedStoryIndex - 1].id);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } else {
         setProgress(0);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     }
   };
@@ -382,13 +377,13 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
                     >
                       <Pressable 
                         style={({ pressed }) => [styles.footerActionBtn, { opacity: pressed ? 0.7 : 1 }]}
-                        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+                        onPress={() => {}}
                       >
                         <Heart size={26} color="#fff" strokeWidth={2} />
                       </Pressable>
                       <Pressable 
                         style={({ pressed }) => [styles.footerActionBtn, { opacity: pressed ? 0.7 : 1 }]}
-                        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                        onPress={() => {}}
                       >
                         <Share2 size={26} color="#fff" strokeWidth={2} />
                       </Pressable>

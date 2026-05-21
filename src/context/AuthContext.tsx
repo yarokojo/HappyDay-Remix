@@ -56,14 +56,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check for persisted guest user first
-    const persistedGuest = localStorage.getItem('guest_user');
-    if (persistedGuest) {
-      try {
-        const guestData = JSON.parse(persistedGuest);
-        setUser(guestData);
-        setLoading(false);
-      } catch (e) {
-        console.error("Failed to parse guest user", e);
+    if (typeof localStorage !== 'undefined') {
+      const persistedGuest = localStorage.getItem('guest_user');
+      if (persistedGuest) {
+        try {
+          const guestData = JSON.parse(persistedGuest);
+          setUser(guestData);
+          setLoading(false);
+        } catch (e) {
+          console.error("Failed to parse guest user", e);
+        }
       }
     }
 
@@ -89,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         // Only clear if not in "Guest" mode (we'll use a prefix for guest IDs)
-        setUser(prev => prev?.uid.startsWith('guest_') ? prev : null);
+        setUser(prev => (prev?.uid && prev.uid.startsWith('guest_')) ? prev : null);
         setIsAdmin(false);
       }
       setLoading(false);

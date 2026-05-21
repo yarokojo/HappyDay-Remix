@@ -129,9 +129,13 @@ export default function ProfileScreen({
         }
 
         // Check if Supabase is properly configured
-        const supabaseUrl = process.env.SUPABASE_URL || '';
-        if (supabaseUrl.includes('placeholder-url')) {
-          Alert.alert("Configuration Required", "Please set your SUPABASE_URL and SUPABASE_ANON_KEY in the settings to enable cloud storage. For now, try 'Skip login' to test local updates.");
+        const supabaseUrl = process.env.SUPABASE_URL;
+        if (!supabaseUrl || supabaseUrl === 'https://placeholder-url.supabase.co' || supabaseUrl.includes('placeholder')) {
+          Alert.alert(
+            "Configuration Required", 
+            "Cloud storage is not configured. Please set SUPABASE_URL and SUPABASE_ANON_KEY in settings.\n\nFor now, you can use 'Skip Login' to test locally.",
+            [{ text: "OK" }]
+          );
           return;
         }
 

@@ -4,7 +4,6 @@ import { ArrowLeft, Wallet, ArrowUpRight, History, Smartphone, ChevronRight, Gif
 import { MotiView, AnimatePresence } from "moti";
 import { Transaction } from "../types";
 import { useTheme } from "../context/ThemeContext";
-import * as Haptics from 'expo-haptics';
 
 const MOCK_TRANSACTIONS: Transaction[] = [
   { id: "t1", type: "gift_received", amount: 2500, date: "Today, 10:45 AM", senderName: "Julia Mason", status: "completed" },
@@ -43,7 +42,6 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
     const netAmount = amount - fee;
 
     setLoading(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     // Simulate allocation to maintenance account
     console.log(`Allocating 1% fee (₵${fee.toFixed(2)}) to maintenance account: ${MAINTENANCE_ACCOUNT}`);
@@ -52,7 +50,6 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
       setLoading(false);
       setCurrentBalance(prev => prev - amount);
       setShowSuccess(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTimeout(() => {
         setShowSuccess(false);
         setIsWithdrawing(false);
@@ -66,12 +63,10 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
     if (!amount) return;
     
     setLoading(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setTimeout(() => {
       setLoading(false);
       setCurrentBalance(prev => prev + amount);
       setShowSuccess(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTimeout(() => {
         setShowSuccess(false);
         setIsToppingUp(false);

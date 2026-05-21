@@ -10,7 +10,6 @@ import FeedCard from "../components/FeedCard";
 import { LayoutGrid, Sparkles, CalendarRange, PlusCircle, Image as ImageIcon, Cake, Plus, Search, CheckCircle2, X } from "lucide-react-native";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
-import * as Haptics from 'expo-haptics';
 
 const TRENDING_CELEBS: TrendingCeleb[] = [
   { id: "tc1", name: "Dwayne Johnson", handle: "@therock", imageUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop", isVerified: true },
@@ -130,7 +129,6 @@ export default function HomeScreen({
 
   const onRefresh = React.useCallback(() => {
     setIsRefreshing(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setTimeout(() => {
       // Simulate adding a new celebrant
       const newCeleb = { id: Date.now().toString(), name: "Surprise Celeb", age: 25, date: "Today", imageUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop" };
@@ -169,7 +167,6 @@ export default function HomeScreen({
                     key={tab.id}
                     onPress={() => {
                       setActiveTopTab(tab.id);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }}
                     style={({ pressed }) => [
                       styles.tabItem,
@@ -286,7 +283,6 @@ export default function HomeScreen({
                               key={cat.id}
                               onPress={() => {
                                 setSelectedCategory(cat.id);
-                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                               }}
                               style={[
                                 styles.filterChip,

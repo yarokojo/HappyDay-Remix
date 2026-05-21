@@ -6,7 +6,6 @@ import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 import { useTheme } from "../context/ThemeContext";
 import { useActivity } from "../context/ActivityContext";
 import { useAuth } from "../context/AuthContext";
-import * as Haptics from 'expo-haptics';
 
 type CelebrationType = 'birthday' | 'anniversary' | 'party' | 'general';
 
@@ -57,11 +56,7 @@ export default function PostScreen({ initialMode = 'post', onPost, onBack }: Pos
     setIsPosting(true);
     try {
       if (Platform.OS !== 'web') {
-        try {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch (hErr) {
-          console.warn("Haptics failed", hErr);
-        }
+        // Haptics removed
       }
       
       if (celebrationType === 'birthday' || celebrationType === 'anniversary') {

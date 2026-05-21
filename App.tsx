@@ -10,7 +10,7 @@
 
 import "react-native-gesture-handler";
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, SafeAreaView, Platform, Text, TouchableOpacity, useWindowDimensions, KeyboardAvoidingView, ActivityIndicator } from "react-native";
+import { View, StyleSheet, SafeAreaView, Platform, Text, TouchableOpacity, useWindowDimensions, KeyboardAvoidingView, ActivityIndicator, Alert } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -87,7 +87,6 @@ function MainApp() {
   const [postMode, setPostMode] = useState<'post' | 'video'>('post');
   const [seenStoryIds, setSeenStoryIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
-  const [reels, setReels] = useState<ReelItem[]>([]);
   const [stories, setStories] = useState<Story[]>([
     { 
       id: "1", 
@@ -109,9 +108,26 @@ function MainApp() {
   const [posts, setPosts] = useState<Post[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    // Load local data for guests
+    if (typeof localStorage !== 'undefined') {
+      const localPosts = localStorage.getItem('guest_posts');
+      if (localPosts) {
+        try {
+          const parsed = JSON.parse(localPosts);
+          setPosts(prev => {
+            // Merge avoiding duplicates
+            const existingIds = new Set(prev.map(p => p.id));
+            const newPosts = parsed.filter((p: any) => !existingIds.has(p.id));
+            return [...newPosts, ...prev];
+          });
+        } catch (e) {
+          console.error("Failed to parse guest posts", e);
+        }
+      }
+    }
 
-    // Initial fetch
+    if (!user) return;
+    
     const fetchPosts = async () => {
       const { data, error } = await supabase
         .from('posts')
@@ -157,22 +173,58 @@ function MainApp() {
     };
   }, [user]);
 
-  useEffect(() => {
-    // Update reels if video exists
-    const videoPosts = posts.filter(p => !!p.video).map(p => ({
-      id: p.id,
-      user: p.authorName,
-      handle: "@" + (p.authorName.toLowerCase().replace(' ', '_')),
-      avatar: p.authorImage,
-      description: p.content,
-      music: "Original Audio",
-      likes: (p.likes || 0).toString(),
-      comments: (p.comments || 0).toString(),
-      videoUrl: p.video!,
-      poster: p.image || "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800",
-    }));
-    setReels(videoPosts);
+  // Derived reels state from posts that have videos
+  const reels = React.useMemo(() => {
+    const videoPosts = posts.filter(p => !!p.video).map(p => {
+      const authorName = p.authorName || "Unknown";
+      const authorHandle = p.authorHandle || "@" + (authorName.toLowerCase().replace(/\s+/g, '_'));
+      
+      return {
+        id: p.id,
+        user: authorName,
+        handle: authorHandle,
+        avatar: p.authorImage,
+        description: p.content,
+        music: "Original Audio",
+        likes: (p.likes || 0).toLocaleString(),
+        comments: (p.comments || 0).toLocaleString(),
+        videoUrl: p.video!,
+        poster: p.image || "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800",
+        isBirthday: p.celebrationType === 'birthday'
+      };
+    });
+
+    const samples: ReelItem[] = [
+      {
+        id: "sample1",
+        user: "Julia Mason",
+        handle: "@julia_mason",
+        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
+        description: "Getting ready for the big night! 🎉 #birthdaybash",
+        music: "Birthday Anthem - Original",
+        likes: "1.2k",
+        comments: "142",
+        videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-girl-blowing-out-birthday-candles-4437-large.mp4",
+        poster: "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800",
+        isBirthday: true
+      },
+      {
+        id: "sample2",
+        user: "Kevin Hart",
+        handle: "@kevin_hart",
+        avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop",
+        description: "Surprise party success! 🎊✨",
+        music: "Party Time - Vibe",
+        likes: "856",
+        comments: "94",
+        videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-party-confetti-falling-close-up-of-hands-throwing-427-large.mp4",
+        poster: "https://images.unsplash.com/photo-1530103578275-21127a7c569a?w=800"
+      }
+    ];
+
+    return [...videoPosts, ...samples];
   }, [posts]);
+
 
   if (authLoading) {
     return (
@@ -204,36 +256,75 @@ function MainApp() {
     feeling?: string
   ) => {
     console.log("Creating new post with content:", content.substring(0, 20) + "...");
+    
+    // Optimistic Update / Guest Support
+    const newOptimisticPost: Post = {
+      id: 'opt_' + Date.now().toString(),
+      authorId: user?.uid || 'guest',
+      authorName: user?.displayName || "Test User",
+      authorHandle: "@" + (user?.displayName?.toLowerCase().replace(/\s+/g, '_') || 'user'),
+      authorImage: userProfileImage,
+      content: content || "",
+      image,
+      video,
+      location,
+      celebrationType: celebrationType || 'general',
+      celebrantName,
+      feeling,
+      likes: 0,
+      comments: 0,
+      reposts: 0,
+      views: 0,
+      timestamp: "Just now",
+      commentsList: []
+    };
+
+    setPosts(prev => [newOptimisticPost, ...prev]);
+
     try {
-      const postData: any = {
-        author_id: user.uid,
-        author_name: user.displayName || "Unknown",
-        author_handle: "@" + (user.displayName?.toLowerCase().replace(' ', '_') || 'user'),
-        author_image: userProfileImage,
-        content: content || "",
-        likes: 0,
-        comments: 0,
-        reposts: 0,
-        views: 0,
-        created_at: new Date().toISOString()
-      };
+      if (user?.uid && !user.uid.startsWith('guest_')) {
+        const postData: any = {
+          author_id: user.uid,
+          author_name: user.displayName || "Unknown",
+          author_handle: "@" + (user.displayName?.toLowerCase().replace(/\s+/g, '_') || 'user'),
+          author_image: userProfileImage,
+          content: content || "",
+          likes: 0,
+          comments: 0,
+          reposts: 0,
+          views: 0,
+          created_at: new Date().toISOString()
+        };
 
-      if (image) postData.image = image;
-      if (video) postData.video = video;
-      if (location) postData.location = location;
-      if (celebrationType) postData.celebration_type = celebrationType;
-      if (celebrantName) postData.celebrant_name = celebrantName;
-      if (feeling) postData.feeling = feeling;
+        if (image) postData.image = image;
+        if (video) postData.video = video;
+        if (location) postData.location = location;
+        if (celebrationType) postData.celebration_type = celebrationType;
+        if (celebrantName) postData.celebrant_name = celebrantName;
+        if (feeling) postData.feeling = feeling;
 
-      const { data, error } = await supabase
-        .from('posts')
-        .insert(postData)
-        .select()
-        .single();
+        const { data, error } = await supabase
+          .from('posts')
+          .insert(postData)
+          .select()
+          .single();
 
-      if (error) throw error;
-      
-      console.log("Post created with ID:", data.id);
+        if (error) throw error;
+        
+        console.log("Post created with ID:", data.id);
+        
+        // Replace optimistic post with actual one
+        setPosts(prev => prev.map(p => p.id === newOptimisticPost.id ? {
+          ...p,
+          id: data.id,
+          timestamp: data.created_at ? new Date(data.created_at).toLocaleString() : "Just now"
+        } : p));
+      } else {
+        // For guest users, save to local storage
+        const localPosts = localStorage.getItem('guest_posts');
+        const updatedLocalPosts = [newOptimisticPost, ...(localPosts ? JSON.parse(localPosts) : [])];
+        localStorage.setItem('guest_posts', JSON.stringify(updatedLocalPosts));
+      }
       
       if (video) {
         setActiveTab("video");
@@ -243,6 +334,9 @@ function MainApp() {
       setView(null);
     } catch (error) {
       console.error("handlePost detailed error:", error);
+      // Revert optimistic update on error
+      setPosts(prev => prev.filter(p => p.id !== newOptimisticPost.id));
+      Alert.alert("Error", "Failed to share post. Please check your connection.");
     }
   };
 
@@ -439,9 +533,17 @@ function MainApp() {
   };
 
   const renderScreen = () => {
+  const filteredPosts = posts.filter(post => {
+    const s = searchQuery.toLowerCase();
+    const content = (post.content || "").toLowerCase();
+    const authorName = (post.authorName || "").toLowerCase();
+    const authorHandle = (post.authorHandle || "").toLowerCase();
+    return content.includes(s) || authorName.includes(s) || authorHandle.includes(s);
+  });
+
     const homeProps = {
       onNavigate: navigateTo,
-      posts,
+      posts: filteredPosts,
       stories,
       seenStoryIds,
       userProfileImage,
@@ -461,12 +563,6 @@ function MainApp() {
       onSearchChange: setSearchQuery
     };
 
-    const filteredPosts = posts.filter(post => 
-      post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.authorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.authorHandle.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
     if (view === "webview" && webViewUrl) {
       return (
         <WebViewScreen 
@@ -482,7 +578,7 @@ function MainApp() {
     // Admin only screens
     if (view === "wallet") {
       if (isAdmin) return <WalletScreen onBack={() => setView(null)} />;
-      return <HomeScreen {...homeProps} posts={posts} />; // Fallback
+      return <HomeScreen {...homeProps} posts={filteredPosts} />; // Fallback
     }
 
     if (view === "notifications") return <NotificationScreen onBack={() => setView(null)} />;
@@ -499,7 +595,7 @@ function MainApp() {
 
     switch (activeTab) {
       case "home":
-        return <HomeScreen {...homeProps} posts={posts} />;
+        return <HomeScreen {...homeProps} posts={filteredPosts} />;
       case "calendar":
         return <CalendarScreen onNavigate={navigateTo} />;
       case "gift_shop":
@@ -509,7 +605,7 @@ function MainApp() {
       case "profile":
         return <ProfileScreen onNavigate={navigateTo} />;
       default:
-        return <HomeScreen {...homeProps} posts={posts} />;
+        return <HomeScreen {...homeProps} posts={filteredPosts} />;
     }
   };
 

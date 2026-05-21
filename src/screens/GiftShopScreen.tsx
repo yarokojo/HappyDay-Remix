@@ -5,7 +5,6 @@ import { MotiView, AnimatePresence } from "moti";
 import { Gift as GiftType } from "../types";
 import { useTheme } from "../context/ThemeContext";
 import { useActivity } from "../context/ActivityContext";
-import * as Haptics from 'expo-haptics';
 
 const GIFTS: GiftType[] = [
   { id: "g1", name: "Gold Bar", price: 100, category: "Luxury", imageUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&h=300&fit=crop" },
@@ -48,7 +47,6 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
   const handlePay = () => {
     if (!phoneNumber) return;
     setIsPaying(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const amount = selectedGift?.price || 0;
     const fee = amount * 0.01;
@@ -60,7 +58,6 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
     setTimeout(() => {
       setIsPaying(false);
       setShowSuccess(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
       // Add notification to context
       if (selectedGift) {
@@ -109,7 +106,6 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
               key={cat}
               onPress={() => {
                 setActiveCategory(cat);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={({ pressed }) => [
                 styles.categoryBtn,
@@ -186,7 +182,6 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
               key={gift.id}
               onPress={() => {
                 setSelectedGift(gift);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={({ pressed }) => [
                 styles.giftCard, 

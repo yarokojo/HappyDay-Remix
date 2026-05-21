@@ -5,6 +5,7 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   ActivityIndicator,
+  TextInput,
   Platform
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
@@ -68,49 +69,45 @@ export default function SetBirthdayScreen() {
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: theme.subText }]}>Day</Text>
             <View style={[styles.inputWrapper, { backgroundColor: theme.itemBg, borderColor: theme.border }]}>
-              <select 
+              <TextInput 
                 value={day} 
-                onChange={(e) => setDay(e.target.value)}
-                style={{ ...styles.select, color: theme.text, backgroundColor: 'transparent' }}
-              >
-                <option value="">DD</option>
-                {Array.from({ length: 31 }, (_, i) => (
-                  <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
-                ))}
-              </select>
+                onChangeText={setDay}
+                placeholder="DD"
+                placeholderTextColor={theme.subText}
+                keyboardType="numeric"
+                maxLength={2}
+                style={[styles.pickerInput, { color: theme.text }]}
+              />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: theme.subText }]}>Month</Text>
             <View style={[styles.inputWrapper, { backgroundColor: theme.itemBg, borderColor: theme.border }]}>
-              <select 
+              <TextInput 
                 value={month} 
-                onChange={(e) => setMonth(e.target.value)}
-                style={{ ...styles.select, color: theme.text, backgroundColor: 'transparent' }}
-              >
-                <option value="">MM</option>
-                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => (
-                  <option key={i + 1} value={String(i + 1)}>{m}</option>
-                ))}
-              </select>
+                onChangeText={setMonth}
+                placeholder="MM"
+                placeholderTextColor={theme.subText}
+                keyboardType="numeric"
+                maxLength={2}
+                style={[styles.pickerInput, { color: theme.text }]}
+              />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: theme.subText }]}>Year</Text>
             <View style={[styles.inputWrapper, { backgroundColor: theme.itemBg, borderColor: theme.border }]}>
-              <select 
+              <TextInput 
                 value={year} 
-                onChange={(e) => setYear(e.target.value)}
-                style={{ ...styles.select, color: theme.text, backgroundColor: 'transparent' }}
-              >
-                <option value="">YYYY</option>
-                {Array.from({ length: 100 }, (_, i) => {
-                  const y = new Date().getFullYear() - i;
-                  return <option key={y} value={String(y)}>{y}</option>;
-                })}
-              </select>
+                onChangeText={setYear}
+                placeholder="YYYY"
+                placeholderTextColor={theme.subText}
+                keyboardType="numeric"
+                maxLength={4}
+                style={[styles.pickerInput, { color: theme.text }]}
+              />
             </View>
           </View>
         </View>
@@ -195,7 +192,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
+  },
+  pickerInput: {
+    width: '100%',
+    fontSize: 16,
+    fontWeight: '600',
+    padding: 0,
   },
   select: {
     width: '100%',

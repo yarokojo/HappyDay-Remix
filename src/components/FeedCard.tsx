@@ -7,7 +7,6 @@ import { Video, ResizeMode } from "expo-av";
 import { useTheme } from "../context/ThemeContext";
 import { useActivity } from "../context/ActivityContext";
 import { useAuth } from "../context/AuthContext";
-import * as Haptics from 'expo-haptics';
 
 interface FeedCardProps {
   post: Post;
@@ -71,7 +70,6 @@ export default function FeedCard({
     if (!hasLiked) {
       onLike();
       setHasLiked(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
       // Log as history when liked/interacted
       logView({
@@ -82,7 +80,6 @@ export default function FeedCard({
       });
     } else {
       setHasLiked(false);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
 
@@ -119,10 +116,8 @@ export default function FeedCard({
     if (!hasReposted) {
       onRepost();
       setHasReposted(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else {
       setHasReposted(false);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
 
@@ -157,7 +152,6 @@ export default function FeedCard({
       onAddComment(newComment);
       setNewComment("");
       if (!showComments) setShowComments(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
 
@@ -358,7 +352,6 @@ export default function FeedCard({
               <TouchableOpacity 
                 onPress={() => {
                   onToggleBookmark();
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   
                   if (!post.isBookmarked) {
                     saveForLater({
