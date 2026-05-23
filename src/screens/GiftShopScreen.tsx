@@ -151,18 +151,6 @@ export default function GiftShopScreen({
           />
         </TouchableOpacity>
 
-        {/* External Store Link */}
-        <TouchableOpacity 
-          style={[styles.externalLinkCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-          onPress={() => onNavigate?.('webview', undefined, undefined, 'https://www.google.com/search?q=birthday+gifts', 'Official Gift Store')}
-        >
-          <View style={styles.externalLinkTextContainer}>
-            <Text style={[styles.externalLinkTitle, { color: theme.text }]}>Visit External Shop</Text>
-            <Text style={[styles.externalLinkDesc, { color: theme.subText }]}>Explore more gifts on our official website</Text>
-          </View>
-          <Smartphone size={24} color={theme.primary} />
-        </TouchableOpacity>
-
         {/* Gifts Grid */}
         <View style={styles.giftsGrid}>
           {filteredGifts.map((gift) => (
@@ -459,31 +447,6 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  externalLinkCard: {
-    marginTop: 16,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderStyle: 'dashed',
-  },
-  externalLinkTextContainer: {
-    flex: 1,
-  },
-  externalLinkTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#1e293b',
-  },
-  externalLinkDesc: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 2,
   },
   giftsGrid: {
     flexDirection: 'row',

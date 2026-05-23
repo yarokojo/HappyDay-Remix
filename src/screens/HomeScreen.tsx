@@ -189,7 +189,7 @@ export default function HomeScreen({
                       ))}
                     </ScrollView>
 
-                    <GiftShopBanner />
+                    <GiftShopBanner onPress={() => onNavigate('gift_shop')} />
 
                     {/* Trending */}
                     <View style={styles.trendingContainer}>
@@ -340,7 +340,7 @@ export default function HomeScreen({
                       ))}
                     </View>
 
-                    <GiftShopBanner />
+                    <GiftShopBanner onPress={() => onNavigate('gift_shop')} />
                   </MotiView>
                 )}
 
