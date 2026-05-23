@@ -1,12 +1,10 @@
-import React, { useState, useRef, useCallback } from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, Share, Alert, Platform, Pressable } from "react-native";
+import React, { useState, useRef } from "react";
+import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, Share, Alert, Platform, Clipboard } from "react-native";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Edit2, Check, X, Image as ImageIcon, Trash2, Send, UserPlus, UserCheck, Video as VideoIcon, Repeat, Bookmark, MapPin, Eye, Cake, PartyPopper, Gift } from "lucide-react-native";
 import { Post } from "../types";
 import { MotiView, AnimatePresence } from "moti";
 import { Video, ResizeMode } from "expo-av";
 import { useTheme } from "../context/ThemeContext";
-import { useActivity } from "../context/ActivityContext";
-import { useAuth } from "../context/AuthContext";
 
 interface FeedCardProps {
   post: Post;
@@ -17,12 +15,10 @@ interface FeedCardProps {
   onAddComment: (content: string) => void;
   onDelete: () => void;
   onDeleteComment: (commentId: string) => void;
-  onIncrementViews: () => void;
   onToggleFollow: () => void;
   onSelect: () => void;
   onRepost: () => void;
   onToggleBookmark: () => void;
-  onNavigate?: (screen: string) => void;
 }
 
 export default function FeedCard({ 
@@ -34,16 +30,12 @@ export default function FeedCard({
   onAddComment,
   onDelete,
   onDeleteComment,
-  onIncrementViews,
   onToggleFollow,
   onSelect,
   onRepost,
-  onToggleBookmark,
-  onNavigate
+  onToggleBookmark
 }: FeedCardProps) {
   const { theme, darkMode } = useTheme();
-  const { user } = useAuth();
-  const { logView, saveForLater, removeFromSaved } = useActivity();
   const [isEditing, setIsEditing] = useState(false);
   const [showComments, setShowComments] = useState(false);
   // ... rest of state
@@ -61,54 +53,45 @@ export default function FeedCard({
   
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editedCommentContent, setEditedCommentContent] = useState("");
-  const [lastTap, setLastTap] = useState(0);
-  const [showHeartOverlay, setShowHeartOverlay] = useState(false);
 
-  const isOwnPost = user && (post.authorId === user.uid || post.authorName === user.displayName);
+  const isOwnPost = post.authorName === "Alex Johnson";
 
   const handleLike = () => {
     if (!hasLiked) {
       onLike();
       setHasLiked(true);
-      
-      // Log as history when liked/interacted
-      logView({
-        id: post.id,
-        type: post.video ? 'video' : 'image',
-        title: post.content.substring(0, 30) + '...',
-        imageUrl: post.image || post.authorImage
-      });
-    } else {
-      setHasLiked(false);
     }
   };
 
-  const handleDoubleTap = useCallback(() => {
-    const now = Date.now();
-    const DOUBLE_TAP_DELAY = 300;
-    
-    // Increment views on any tap
-    onIncrementViews();
-
-    if (lastTap && (now - lastTap) < DOUBLE_TAP_DELAY) {
-      if (!hasLiked) {
-        handleLike();
-      }
-      setShowHeartOverlay(true);
-      setTimeout(() => setShowHeartOverlay(false), 1000);
-    } else {
-      setLastTap(now);
-    }
-  }, [lastTap, hasLiked, handleLike]);
-
   const handleShare = async () => {
+    const shareMessage = `${post.content}\n\nShared from Celebration App`;
+    const shareUrl = Platform.OS === 'ios' ? 'https://celebration.app' : undefined;
+
     try {
-      await Share.share({
-        message: `${post.content}\n\nShared from Celebration App`,
-        url: Platform.OS === 'ios' ? 'https://celebration.app' : undefined,
+      const result = await Share.share({
+        message: shareMessage,
+        url: shareUrl,
       });
-    } catch (error) {
-      console.error('Error sharing:', error);
+      
+      if (result.action === Share.sharedAction) {
+        // Success
+      }
+    } catch (error: any) {
+      // Gracefully handle cancellation as it's common in web pickers / iframes
+      const errorMessage = error?.message || '';
+      const isCanceled = errorMessage.includes('canceled') || errorMessage.includes('Canceled') || error?.name === 'AbortError';
+      
+      if (isCanceled) {
+        return; 
+      }
+
+      // If it's a real error or API not available (like in some iframes), fallback to clipboard
+      try {
+        Clipboard.setString(shareMessage);
+        Alert.alert("Copied", "Content copied to clipboard!");
+      } catch (clipboardError) {
+        console.error('Share and Clipboard fallback both failed:', clipboardError);
+      }
     }
   };
 
@@ -116,8 +99,6 @@ export default function FeedCard({
     if (!hasReposted) {
       onRepost();
       setHasReposted(true);
-    } else {
-      setHasReposted(false);
     }
   };
 
@@ -180,17 +161,12 @@ export default function FeedCard({
     >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity 
-            style={[styles.avatarContainer, { backgroundColor: theme.itemBg }]}
-            onPress={() => onNavigate?.('profile')}
-          >
+          <View style={[styles.avatarContainer, { backgroundColor: theme.itemBg }]}>
             <Image source={{ uri: post.authorImage }} style={styles.avatar} />
-          </TouchableOpacity>
+          </View>
           <View>
             <View style={styles.authorRow}>
-              <TouchableOpacity onPress={() => onNavigate?.('profile')}>
-                <Text style={[styles.authorName, { color: theme.text }]}>{post.authorName}</Text>
-              </TouchableOpacity>
+              <Text style={[styles.authorName, { color: theme.text }]}>{post.authorName}</Text>
               {!isOwnPost && (
                 <TouchableOpacity 
                   onPress={onToggleFollow}
@@ -288,25 +264,9 @@ export default function FeedCard({
       </View>
 
       {!isEditing && post.image && (
-        <Pressable 
-          onPress={handleDoubleTap} 
-          style={styles.mediaContainer}
-        >
+        <TouchableOpacity onPress={onSelect} activeOpacity={0.9} style={styles.mediaContainer}>
           <Image source={{ uri: post.image }} style={styles.postImage} resizeMode="cover" />
-          <AnimatePresence>
-            {showHeartOverlay && (
-              <MotiView 
-                from={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1.5, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{ type: 'spring', damping: 10 }}
-                style={styles.heartOverlay}
-              >
-                <Heart size={80} color="#fff" fill="#fff" />
-              </MotiView>
-            )}
-          </AnimatePresence>
-        </Pressable>
+        </TouchableOpacity>
       )}
 
       {!isEditing && post.video && (
@@ -341,31 +301,10 @@ export default function FeedCard({
                 <Repeat size={20} color={hasReposted ? "#10b981" : theme.subText} />
                 <Text style={[styles.interactionValue, { color: theme.subText }, hasReposted && { color: '#10b981' }]}>{post.reposts}</Text>
               </TouchableOpacity>
-
-              <View style={styles.interactionButton}>
-                <Eye size={20} color={theme.subText} />
-                <Text style={[styles.interactionValue, { color: theme.subText }]}>{post.views}</Text>
-              </View>
             </View>
 
             <View style={styles.rightInteractions}>
-              <TouchableOpacity 
-                onPress={() => {
-                  onToggleBookmark();
-                  
-                  if (!post.isBookmarked) {
-                    saveForLater({
-                      id: post.id,
-                      type: post.video ? 'video' : 'post',
-                      title: post.content.substring(0, 30) + '...',
-                      imageUrl: post.image || post.authorImage
-                    });
-                  } else {
-                    removeFromSaved(post.id);
-                  }
-                }} 
-                style={styles.interactionButton}
-              >
+              <TouchableOpacity onPress={onToggleBookmark} style={styles.interactionButton}>
                 <Bookmark size={20} color={post.isBookmarked ? "#f59e0b" : theme.subText} fill={post.isBookmarked ? "#f59e0b" : "transparent"} />
               </TouchableOpacity>
               <TouchableOpacity onPress={handleShare} style={styles.interactionButton}>
@@ -380,28 +319,23 @@ export default function FeedCard({
         <AnimatePresence>
           {showComments && (
             <MotiView
-              from={{ opacity: 0, scaleY: 0.8 }}
-              animate={{ opacity: 1, scaleY: 1 }}
-              exit={{ opacity: 0, scaleY: 0.8 }}
-              transition={{ type: 'timing', duration: 250 }}
+              from={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
               style={[styles.commentsSection, { backgroundColor: theme.itemBg, borderTopColor: theme.border }]}
             >
-              {post.commentsList?.length ? (
-                post.commentsList.map((comment) => (
-                  <View key={comment.id} style={styles.commentItem}>
-                    <Image source={{ uri: comment.authorImage }} style={[styles.smallAvatar, { backgroundColor: theme.border }]} />
-                    <View style={styles.commentContent}>
-                      <View style={styles.commentHeader}>
-                        <Text style={[styles.commentAuthor, { color: theme.text }]}>{comment.authorName}</Text>
-                        <Text style={[styles.commentTime, { color: theme.subText }]}>{comment.timestamp}</Text>
-                      </View>
-                      <Text style={[styles.commentText, { color: theme.text, opacity: 0.8 }]}>{comment.content}</Text>
+              {post.commentsList?.map((comment) => (
+                <View key={comment.id} style={styles.commentItem}>
+                  <Image source={{ uri: comment.authorImage }} style={[styles.smallAvatar, { backgroundColor: theme.border }]} />
+                  <View style={styles.commentContent}>
+                    <View style={styles.commentHeader}>
+                      <Text style={[styles.commentAuthor, { color: theme.text }]}>{comment.authorName}</Text>
+                      <Text style={[styles.commentTime, { color: theme.subText }]}>{comment.timestamp}</Text>
                     </View>
+                    <Text style={[styles.commentText, { color: theme.text, opacity: 0.8 }]}>{comment.content}</Text>
                   </View>
-                ))
-              ) : (
-                <Text style={[styles.noCommentsText, { color: theme.subText }]}>No comments yet. Be the first to wish!</Text>
-              )}
+                </View>
+              ))}
 
               <View style={styles.addComment}>
                 <Image 
@@ -409,21 +343,12 @@ export default function FeedCard({
                   style={[styles.smallAvatar, { backgroundColor: theme.border }]} 
                 />
                 <TextInput
-                  style={[
-                    styles.commentInput, 
-                    { 
-                      backgroundColor: theme.card, 
-                      color: theme.text, 
-                      borderColor: theme.border,
-                      maxHeight: 100 
-                    }
-                  ]}
+                  style={[styles.commentInput, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
                   placeholder="Write a comment..."
                   placeholderTextColor={theme.subText}
                   value={newComment}
                   onChangeText={setNewComment}
-                  multiline
-                  blurOnSubmit={false}
+                  onSubmitEditing={handlePostComment}
                 />
                 <TouchableOpacity onPress={handlePostComment} disabled={!newComment.trim()}>
                   <Send size={18} color={newComment.trim() ? theme.primary : theme.border} />
@@ -493,9 +418,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#f1f5f9',
-    marginBottom: 16,
+    marginBottom: 24, // Consistent spacing
     borderRadius: 16,
-    overflow: 'hidden',
+    // Removed overflow: 'hidden' to prevent layout clipping during height animations
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   editingCard: {
     borderColor: '#c7d2fe',
@@ -666,12 +596,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  heartOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.1)',
-  },
   postVideo: {
     width: '100%',
     height: '100%',
@@ -698,8 +622,8 @@ const styles = StyleSheet.create({
   interactionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    padding: 8,
+    gap: 6,
+    padding: 10, // Increased touch target for mobile
   },
   interactionValue: {
     fontSize: 12,
@@ -707,10 +631,14 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   commentsSection: {
-    padding: 16,
-    paddingBottom: 24, // Added more bottom padding
-    gap: 16,
+    backgroundColor: '#f8fafc',
     borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    padding: 16,
+    gap: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    paddingBottom: 24, // Extra padding at the bottom of the comments to prevent overlap
   },
   commentItem: {
     flexDirection: 'row',
@@ -720,6 +648,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: '#e2e8f0',
   },
   commentContent: {
     flex: 1,
@@ -733,20 +662,17 @@ const styles = StyleSheet.create({
   commentAuthor: {
     fontSize: 12,
     fontWeight: '700',
+    color: '#1e293b',
   },
   commentTime: {
     fontSize: 10,
+    color: '#94a3b8',
     fontWeight: '600',
   },
   commentText: {
     fontSize: 12,
+    color: '#475569',
     lineHeight: 18,
-  },
-  noCommentsText: {
-    fontSize: 12,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    paddingVertical: 8,
   },
   addComment: {
     flexDirection: 'row',
@@ -756,12 +682,13 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     flex: 1,
+    backgroundColor: '#fff',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 20,
-    fontSize: 13,
+    fontSize: 12,
     borderWidth: 1,
-    minHeight: 40, // Ensure a minimum height for multiline
+    borderColor: '#e2e8f0',
   },
   editForm: {
     gap: 12,

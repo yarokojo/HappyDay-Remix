@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Image, TextInput, Modal, ActivityIndicator, Platform, useWindowDimensions, Pressable } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, TextInput, Modal, ActivityIndicator, Platform, useWindowDimensions } from "react-native";
 import { ArrowLeft, Gift, Search, Smartphone, Users, Cake, Plus, X } from "lucide-react-native";
 import { MotiView, AnimatePresence } from "moti";
 import { Gift as GiftType } from "../types";
 import { useTheme } from "../context/ThemeContext";
-import { useActivity } from "../context/ActivityContext";
 
 const GIFTS: GiftType[] = [
   { id: "g1", name: "Gold Bar", price: 100, category: "Luxury", imageUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&h=300&fit=crop" },
@@ -17,7 +16,6 @@ const GIFTS: GiftType[] = [
 
 export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => void, onNavigate?: (screen: string, id?: string, mode?: 'post' | 'video', url?: string, title?: string) => void }) {
   const { theme, darkMode } = useTheme();
-  const { addNotification } = useActivity();
   const { width } = useWindowDimensions();
   const numColumns = width > 1024 ? 4 : (width > 768 ? 3 : 2);
   const cardWidth = (100 / numColumns) - 2;
@@ -41,33 +39,13 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
     ? GIFTS 
     : GIFTS.filter(g => g.category === activeCategory);
 
-  const MAINTENANCE_NAME = "Yaro Kojo Edward";
-  const MAINTENANCE_ACCOUNT = "0202226991"; // Specific account for platform maintenance
-
   const handlePay = () => {
     if (!phoneNumber) return;
     setIsPaying(true);
-
-    const amount = selectedGift?.price || 0;
-    const fee = amount * 0.01;
-    
-    // Simulate allocation to maintenance account
-    console.log(`Allocating 1% fee (₵${fee.toFixed(2)}) from purchase to maintenance account: ${MAINTENANCE_ACCOUNT}`);
-
     // Simulate payment process
     setTimeout(() => {
       setIsPaying(false);
       setShowSuccess(true);
-      
-      // Add notification to context
-      if (selectedGift) {
-        addNotification({
-          type: 'gift',
-          user: 'You',
-          avatar: '',
-          message: `sent a ${selectedGift.name} to Julia! 🎁`
-        });
-      }
       setTimeout(() => {
         setShowSuccess(false);
         setSelectedGift(null);
@@ -79,13 +57,13 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-        <Pressable onPress={onBack} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.7 : 1 }]}>
+        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <ArrowLeft size={20} color={theme.text} />
-        </Pressable>
+        </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Gift Shop</Text>
-        <Pressable style={({ pressed }) => [styles.searchIconBtn, { opacity: pressed ? 0.7 : 1 }]}>
+        <TouchableOpacity style={styles.searchIconBtn}>
           <Search size={20} color={theme.subText} />
-        </Pressable>
+        </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -102,14 +80,12 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
         {/* Categories */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
           {categories.map((cat) => (
-            <Pressable
+            <TouchableOpacity
               key={cat}
-              onPress={() => {
-                setActiveCategory(cat);
-              }}
-              style={({ pressed }) => [
+              onPress={() => setActiveCategory(cat)}
+              style={[
                 styles.categoryBtn,
-                { backgroundColor: theme.card, borderColor: theme.border, opacity: pressed ? 0.8 : 1 },
+                { backgroundColor: theme.card, borderColor: theme.border },
                 activeCategory === cat && [styles.categoryBtnActive, { backgroundColor: theme.primary, borderColor: theme.primary }]
               ]}
             >
@@ -120,17 +96,15 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
               ]}>
                 {cat}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           ))}
         </ScrollView>
 
         {/* Group Gift Promotion */}
-        <Pressable 
+        <TouchableOpacity 
+          activeOpacity={0.9}
           onPress={() => onNavigate?.('group_gifts')}
-          style={({ pressed }) => [
-            styles.promoCard, 
-            { backgroundColor: theme.primary, shadowColor: theme.primary, opacity: pressed ? 0.9 : 1 }
-          ]}
+          style={[styles.promoCard, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
         >
           <View style={styles.promoContent}>
             <View style={styles.promoBadge}>
@@ -158,14 +132,11 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
             transition={{ loop: true, duration: 5000 }}
             style={styles.decoration2} 
           />
-        </Pressable>
+        </TouchableOpacity>
 
         {/* External Store Link */}
-        <Pressable 
-          style={({ pressed }) => [
-            styles.externalLinkCard, 
-            { backgroundColor: theme.card, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }
-          ]}
+        <TouchableOpacity 
+          style={[styles.externalLinkCard, { backgroundColor: theme.card, borderColor: theme.border }]}
           onPress={() => onNavigate?.('webview', undefined, undefined, 'https://www.google.com/search?q=birthday+gifts', 'Official Gift Store')}
         >
           <View style={styles.externalLinkTextContainer}>
@@ -173,20 +144,16 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
             <Text style={[styles.externalLinkDesc, { color: theme.subText }]}>Explore more gifts on our official website</Text>
           </View>
           <Smartphone size={24} color={theme.primary} />
-        </Pressable>
+        </TouchableOpacity>
 
         {/* Gifts Grid */}
         <View style={styles.giftsGrid}>
           {filteredGifts.map((gift) => (
-            <Pressable
+            <TouchableOpacity
               key={gift.id}
-              onPress={() => {
-                setSelectedGift(gift);
-              }}
-              style={({ pressed }) => [
-                styles.giftCard, 
-                { width: `${cardWidth}%`, backgroundColor: theme.card, borderColor: theme.border, opacity: pressed ? 0.9 : 1 }
-              ]}
+              activeOpacity={0.8}
+              onPress={() => setSelectedGift(gift)}
+              style={[styles.giftCard, { width: `${cardWidth}%`, backgroundColor: theme.card, borderColor: theme.border }]}
             >
               <View style={[styles.giftImageContainer, { backgroundColor: theme.itemBg }]}>
                 <Image source={{ uri: gift.imageUrl }} style={styles.giftImage} />
@@ -204,7 +171,7 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
                   </View>
                 </View>
               </View>
-            </Pressable>
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
@@ -222,20 +189,20 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
                 <Text style={[styles.modalTitle, { color: theme.text }]}>Pay with Mobile Money</Text>
                 <Text style={[styles.modalSubtitle, { color: theme.subText }]}>Buying {selectedGift?.name} for Julia</Text>
               </View>
-              <Pressable onPress={() => setSelectedGift(null)} style={({ pressed }) => [styles.closeBtn, { backgroundColor: theme.itemBg, opacity: pressed ? 0.7 : 1 }]}>
+              <TouchableOpacity onPress={() => setSelectedGift(null)} style={[styles.closeBtn, { backgroundColor: theme.itemBg }]}>
                 <X size={20} color={theme.subText} />
-              </Pressable>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.modalBody}>
               <View style={styles.networkSelector}>
                 {networks.map((net) => (
-                  <Pressable
+                  <TouchableOpacity
                     key={net.id}
                     onPress={() => setSelectedNetwork(net.id)}
-                    style={({ pressed }) => [
+                    style={[
                       styles.netBtn,
-                      { borderColor: theme.border, opacity: pressed ? 0.8 : 1 },
+                      { borderColor: theme.border },
                       selectedNetwork === net.id && [styles.netBtnActive, { borderColor: theme.primary, backgroundColor: darkMode ? theme.itemBg : '#f5f7ff' }]
                     ]}
                   >
@@ -243,7 +210,7 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
                       <Text style={styles.netShort}>{net.id.substring(0, 2).toLowerCase()}</Text>
                     </View>
                     <Text style={[styles.netName, selectedNetwork === net.id && [styles.netNameActive, { color: theme.primary }]]}>{net.name}</Text>
-                  </Pressable>
+                  </TouchableOpacity>
                 ))}
               </View>
 
@@ -267,29 +234,12 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
               </View>
 
               <View style={[styles.totalRow, { borderTopColor: theme.border }]}>
-                <View>
-                  <Text style={styles.totalLabel}>Item Price</Text>
-                  <Text style={[styles.feeSubText, { color: theme.subText }]}>Maint. Fee (1%) to {MAINTENANCE_NAME}</Text>
-                  <Text style={[styles.feeSubText, { color: theme.subText, fontSize: 8 }]}>A/C: {MAINTENANCE_ACCOUNT}</Text>
-                </View>
-                <View style={styles.amountRight}>
-                  <Text style={[styles.itemPriceValue, { color: theme.text }]}>₵{selectedGift?.price.toLocaleString()}</Text>
-                  <Text style={[styles.feeValue, { color: theme.secondary }]}>+₵{(selectedGift ? selectedGift.price * 0.01 : 0).toFixed(2)}</Text>
-                </View>
+                <Text style={styles.totalLabel}>Total Amount</Text>
+                <Text style={[styles.totalValue, { color: theme.primary }]}>₵{selectedGift?.price.toLocaleString()}</Text>
               </View>
 
-              <View style={[styles.grandTotalRow, { borderTopColor: theme.border }]}>
-                <Text style={styles.grandTotalLabel}>Grand Total</Text>
-                <Text style={[styles.totalValue, { color: theme.primary }]}>₵{(selectedGift ? selectedGift.price * 1.01 : 0).toLocaleString()}</Text>
-              </View>
-
-              <Pressable 
-                style={({ pressed }) => [
-                  styles.payBtn, 
-                  (isPaying || !phoneNumber) && styles.payBtnDisabled, 
-                  !isPaying && phoneNumber && { backgroundColor: theme.primary, shadowColor: theme.primary },
-                  { opacity: pressed && !isPaying && phoneNumber ? 0.8 : 1 }
-                ]}
+              <TouchableOpacity 
+                style={[styles.payBtn, (isPaying || !phoneNumber) && styles.payBtnDisabled, !isPaying && phoneNumber && { backgroundColor: theme.primary, shadowColor: theme.primary }]}
                 onPress={handlePay}
                 disabled={isPaying || !phoneNumber}
               >
@@ -298,7 +248,7 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
                 ) : (
                   <Text style={styles.payBtnText}>Confirm Payment</Text>
                 )}
-              </Pressable>
+              </TouchableOpacity>
             </View>
           </MotiView>
         </View>
@@ -362,9 +312,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
-    maxWidth: 1200,
-    alignSelf: 'center',
-    width: '100%',
   },
   searchBar: {
     backgroundColor: '#fff',
@@ -725,37 +672,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
   },
-  grandTotalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderStyle: 'dashed',
-  },
   totalLabel: {
     fontSize: 14,
     fontWeight: '700',
-  },
-  grandTotalLabel: {
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  feeSubText: {
-    fontSize: 9,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  amountRight: {
-    alignItems: 'flex-end',
-  },
-  itemPriceValue: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  feeValue: {
-    fontSize: 11,
-    fontWeight: '800',
   },
   totalValue: {
     fontSize: 24,

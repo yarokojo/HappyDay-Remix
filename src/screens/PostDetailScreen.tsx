@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, KeyboardAvoidingView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from "react-native";
 import { ArrowLeft } from "lucide-react-native";
 import { Post } from "../types";
 import FeedCard from "../components/FeedCard";
@@ -27,8 +27,6 @@ interface PostDetailScreenProps {
   onToggleFollow: (authorHandle: string) => void;
   onRepost: (postId: string) => void;
   onToggleBookmark: (postId: string) => void;
-  onIncrementViews: (postId: string) => void;
-  onNavigate: (screen: string, id?: string) => void;
 }
 
 export default function PostDetailScreen({ 
@@ -43,17 +41,11 @@ export default function PostDetailScreen({
   onDeleteComment,
   onToggleFollow,
   onRepost,
-  onToggleBookmark,
-  onIncrementViews,
-  onNavigate
+  onToggleBookmark
 }: PostDetailScreenProps) {
   const { theme } = useTheme();
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={[styles.container, { backgroundColor: theme.bg }]}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-    >
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <ArrowLeft size={24} color={theme.text} />
@@ -61,35 +53,26 @@ export default function PostDetailScreen({
         <Text style={[styles.headerTitle, { color: theme.text }]}>Post Details</Text>
       </View>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.cardWrapper}>
-          <FeedCard 
-            post={post} 
-            userProfileImage={userProfileImage}
-            onEdit={onEditPost} 
-            onLike={() => onLikePost(post.id)} 
-            onEditComment={onEditComment}
-            onAddComment={(content) => onAddComment(post.id, content)}
-            onDelete={() => {
-              onDeletePost(post.id);
-              onBack();
-            }}
-            onDeleteComment={(commentId) => onDeleteComment(post.id, commentId)}
-            onToggleFollow={() => onToggleFollow(post.authorHandle)}
-            onSelect={() => {}} 
-            onRepost={() => onRepost(post.id)}
-            onToggleBookmark={() => onToggleBookmark(post.id)}
-            onIncrementViews={() => onIncrementViews(post.id)}
-            onNavigate={onNavigate}
-          />
-        </View>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
+        <FeedCard 
+          post={post} 
+          userProfileImage={userProfileImage}
+          onEdit={onEditPost} 
+          onLike={() => onLikePost(post.id)} 
+          onEditComment={onEditComment}
+          onAddComment={(content) => onAddComment(post.id, content)}
+          onDelete={() => {
+            onDeletePost(post.id);
+            onBack();
+          }}
+          onDeleteComment={(commentId) => onDeleteComment(post.id, commentId)}
+          onToggleFollow={() => onToggleFollow(post.authorHandle)}
+          onSelect={() => {}} 
+          onRepost={() => onRepost(post.id)}
+          onToggleBookmark={() => onToggleBookmark(post.id)}
+        />
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -120,15 +103,5 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 120, // Increased padding to avoid bottom nav/screen edge
-    maxWidth: 700,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  cardWrapper: {
-    padding: 16,
-    width: '100%',
   },
 });

@@ -30,22 +30,11 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
     { id: "AirtelTigo", name: "AirtelTigo", color: "#2563eb" },
   ];
 
-  const MAINTENANCE_NAME = "Yaro Kojo Edward";
-  const MAINTENANCE_ACCOUNT = "0202226991"; // Specific account for platform maintenance
-
   const handleWithdraw = () => {
     const amount = parseFloat(withdrawAmount);
     if (!amount || amount > currentBalance) return;
     
-    // 1% maintenance fee
-    const fee = amount * 0.01;
-    const netAmount = amount - fee;
-
     setLoading(true);
-    
-    // Simulate allocation to maintenance account
-    console.log(`Allocating 1% fee (₵${fee.toFixed(2)}) to maintenance account: ${MAINTENANCE_ACCOUNT}`);
-    
     setTimeout(() => {
       setLoading(false);
       setCurrentBalance(prev => prev - amount);
@@ -198,30 +187,6 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
                     </TouchableOpacity>
                   ))}
                 </View>
-
-                {isWithdrawing && withdrawAmount && parseFloat(withdrawAmount) > 0 && (
-                  <MotiView 
-                    from={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    style={[styles.feeBreakdown, { borderTopColor: theme.border }]}
-                  >
-                    <View style={styles.feeRow}>
-                      <Text style={[styles.feeLabel, { color: theme.subText }]}>Withdrawal Amount</Text>
-                      <Text style={[styles.feeValue, { color: theme.text }]}>₵{parseFloat(withdrawAmount).toLocaleString()}</Text>
-                    </View>
-                    <View style={styles.feeRow}>
-                      <Text style={[styles.feeLabel, { color: theme.subText }]}>Maintenance Fee (1%)</Text>
-                      <Text style={[styles.feeValue, { color: theme.secondary }]}>- ₵{(parseFloat(withdrawAmount) * 0.01).toFixed(2)}</Text>
-                    </View>
-                    <Text style={[styles.maintenanceInfo, { color: theme.subText }]}>
-                      Deduction allocated to: {MAINTENANCE_NAME} ({MAINTENANCE_ACCOUNT})
-                    </Text>
-                    <View style={[styles.feeRow, styles.feeTotalRow]}>
-                      <Text style={[styles.feeLabelTotal, { color: theme.text }]}>Net Amount to Receive</Text>
-                      <Text style={[styles.feeValueTotal, { color: theme.primary }]}>₵{(parseFloat(withdrawAmount) * 0.99).toLocaleString()}</Text>
-                    </View>
-                  </MotiView>
-                )}
               </View>
 
               <View style={styles.networkSection}>
@@ -660,44 +625,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#3b82f6',
     lineHeight: 15,
-  },
-  feeBreakdown: {
-    marginTop: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    gap: 8,
-  },
-  feeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  feeLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  feeValue: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  maintenanceInfo: {
-    fontSize: 9,
-    fontWeight: '600',
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  feeTotalRow: {
-    marginTop: 4,
-    paddingTop: 8,
-  },
-  feeLabelTotal: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  feeValueTotal: {
-    fontSize: 14,
-    fontWeight: '900',
   },
   mainActionBtn: {
     height: 56,

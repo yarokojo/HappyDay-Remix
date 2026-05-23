@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { View, Text, ScrollView, Image, StyleSheet, Modal, Dimensions, Platform, ActivityIndicator, Alert, TextInput, KeyboardAvoidingView, Pressable } from "react-native";
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Modal, Dimensions, Platform, ActivityIndicator, Alert, TextInput, KeyboardAvoidingView } from "react-native";
 import { Plus, Cake, X, ChevronLeft, ChevronRight, Share2, Heart, MessageCircle, Send } from "lucide-react-native";
 import { Story } from "../types";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,7 +9,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from "expo-av";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
-import { useActivity } from "../context/ActivityContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -23,7 +22,6 @@ interface StoriesProps {
 
 export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory, userProfileImage }: StoriesProps) {
   const { darkMode, theme } = useTheme();
-  const { logView } = useActivity();
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -59,17 +57,6 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
       startProgress();
       if (selectedStoryId) {
         onSeenStory(selectedStoryId);
-        
-        // Log to history
-        const story = stories.find(s => s.id === selectedStoryId);
-        if (story) {
-          logView({
-            id: story.id,
-            type: 'story',
-            title: `${story.userName}'s Story`,
-            imageUrl: story.imageUrl || story.contentUrl || ""
-          });
-        }
       }
     } else {
       if (progressTimer.current) clearInterval(progressTimer.current);
@@ -145,15 +132,12 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
         contentContainerStyle={styles.contentContainer}
       >
         <View style={styles.storyItem}>
-          <Pressable 
-            style={({ pressed }) => [
-              styles.addStoryButton, 
-              { backgroundColor: theme.itemBg, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }
-            ]}
+          <TouchableOpacity 
+            style={[styles.addStoryButton, { backgroundColor: theme.itemBg, borderColor: theme.border }]}
             onPress={handleCreateStory}
           >
             <Plus size={24} color={theme.primary} />
-          </Pressable>
+          </TouchableOpacity>
           <Text style={[styles.storyLabel, { color: theme.subText }]}>Your Story</Text>
         </View>
         
@@ -161,12 +145,9 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
           const isLive = idx === 0 || idx === 1; // Simulation
           const hasBeenSeen = seenStoryIds.has(story.id);
           return (
-            <Pressable 
+            <TouchableOpacity 
               key={story.id} 
-              style={({ pressed }) => [
-                styles.storyItem,
-                { opacity: pressed ? 0.8 : 1 }
-              ]}
+              style={styles.storyItem}
               onPress={() => setSelectedStoryId(story.id)}
             >
               <View style={styles.avatarContainer}>
@@ -205,7 +186,7 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
                 )}
               </View>
               <Text style={[styles.storyLabel, { color: theme.subText }, hasBeenSeen && { color: theme.border }]} numberOfLines={1}>{story.userName}</Text>
-            </Pressable>
+            </TouchableOpacity>
           );
         })}
       </ScrollView>
@@ -272,16 +253,19 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
 
             {/* Tap areas for navigation */}
             <View style={styles.viewerControls}>
-              <Pressable 
+              <TouchableOpacity 
+                activeOpacity={1} 
                 style={styles.tapSide} 
                 onPress={handlePrev}
               />
-              <Pressable 
+              <TouchableOpacity 
+                activeOpacity={1} 
                 style={styles.tapMiddle} 
                 onLongPress={() => setIsPaused(true)}
                 onPressOut={() => setIsPaused(false)}
               />
-              <Pressable 
+              <TouchableOpacity 
+                activeOpacity={1} 
                 style={styles.tapSide} 
                 onPress={handleNext}
               />
@@ -311,9 +295,9 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
                   <Text style={styles.viewerUserName}>{activeStory.userName}</Text>
                   <Text style={styles.viewerTimestamp}>{activeStory.timestamp}</Text>
                 </View>
-                <Pressable onPress={() => setSelectedStoryId(null)} style={({ pressed }) => [styles.viewerCloseBtn, { opacity: pressed ? 0.7 : 1 }]}>
+                <TouchableOpacity onPress={() => setSelectedStoryId(null)} style={styles.viewerCloseBtn}>
                   <X size={24} color="#fff" />
-                </Pressable>
+                </TouchableOpacity>
               </View>
             </SafeAreaView>
 
@@ -353,15 +337,15 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
                         exit={{ opacity: 0, scale: 0.5, translateX: 10 }}
                         transition={{ type: 'spring', damping: 15 }}
                       >
-                        <Pressable 
-                          style={({ pressed }) => [styles.sendButton, { opacity: pressed ? 0.8 : 1 }]}
+                        <TouchableOpacity 
+                          style={styles.sendButton}
                           onPress={() => {
                             setReplyMessage("");
                             setIsPaused(false);
                           }}
                         >
                           <Send size={20} color="#fff" strokeWidth={2.5} />
-                        </Pressable>
+                        </TouchableOpacity>
                       </MotiView>
                     )}
                   </AnimatePresence>
@@ -375,18 +359,12 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
                       exit={{ opacity: 0, scale: 0.8 }}
                       style={styles.footerActions}
                     >
-                      <Pressable 
-                        style={({ pressed }) => [styles.footerActionBtn, { opacity: pressed ? 0.7 : 1 }]}
-                        onPress={() => {}}
-                      >
+                      <TouchableOpacity style={styles.footerActionBtn}>
                         <Heart size={26} color="#fff" strokeWidth={2} />
-                      </Pressable>
-                      <Pressable 
-                        style={({ pressed }) => [styles.footerActionBtn, { opacity: pressed ? 0.7 : 1 }]}
-                        onPress={() => {}}
-                      >
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.footerActionBtn}>
                         <Share2 size={26} color="#fff" strokeWidth={2} />
-                      </Pressable>
+                      </TouchableOpacity>
                     </MotiView>
                   )}
                 </AnimatePresence>

@@ -9,13 +9,13 @@ const UPCOMING = [
   { id: "3", name: "Tom Holland", day: "28", daysLeft: 10, color: "#dbeafe", textColor: "#2563eb", imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop" },
 ];
 
-export default function UpcomingPanel({ onNavigate }: { onNavigate?: (screen: string) => void }) {
+export default function UpcomingPanel() {
   const { theme, darkMode } = useTheme();
   return (
     <View style={[styles.container, { backgroundColor: theme.card, borderColor: theme.border }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: theme.text }]}>Upcoming</Text>
-        <TouchableOpacity onPress={() => onNavigate?.('calendar')}>
+        <TouchableOpacity>
           <Text style={[styles.viewAll, { color: theme.primary }]}>View All</Text>
         </TouchableOpacity>
       </View>
@@ -26,7 +26,6 @@ export default function UpcomingPanel({ onNavigate }: { onNavigate?: (screen: st
             key={event.id} 
             style={styles.item}
             activeOpacity={0.7}
-            onPress={() => onNavigate?.('calendar')}
           >
             <View style={styles.itemLeft}>
               <View style={styles.avatarContainer}>

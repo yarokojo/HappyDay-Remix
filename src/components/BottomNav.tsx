@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Platform, Pressable } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Home, Calendar, Gift, Video, User } from "lucide-react-native";
 import { MotiView } from "moti";
 import { useTheme } from "../context/ThemeContext";
@@ -26,13 +26,11 @@ export default function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
         const isActive = activeTab === tab.id;
         
         return (
-          <Pressable
+          <TouchableOpacity
             key={tab.id}
             onPress={() => setActiveTab(tab.id)}
-            style={({ pressed }) => [
-              styles.tab,
-              { opacity: pressed ? 0.7 : 1 }
-            ]}
+            style={styles.tab}
+            activeOpacity={0.7}
           >
             <Icon 
               size={24} 
@@ -52,7 +50,7 @@ export default function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
                 style={[styles.activeDot, { backgroundColor: theme.primary }]}
               />
             )}
-          </Pressable>
+          </TouchableOpacity>
         );
       })}
     </View>

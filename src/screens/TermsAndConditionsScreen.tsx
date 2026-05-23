@@ -16,62 +16,36 @@ export default function TermsAndConditionsScreen({ onBack }: { onBack: () => voi
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.lastUpdated, { color: theme.subText }]}>Last Updated: May 12, 2026</Text>
+        <Text style={[styles.lastUpdated, { color: theme.subText }]}>Last Updated: May 10, 2026</Text>
         
-        <Text style={[styles.paragraph, { color: theme.subText }]}>
-          These Terms and Conditions constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("you") and Julia's Birthday Bash ("we," "us" or "our"), concerning your access to and use of our application.
-        </Text>
-
         <Text style={[styles.sectionTitle, { color: theme.text }]}>1. Acceptance of Terms</Text>
         <Text style={[styles.paragraph, { color: theme.subText }]}>
-          By accessing or using our application, you agree that you have read, understood, and agree to be bound by all of these Terms and Conditions. If you do not agree with all of these terms, then you are expressly prohibited from using the App and you must discontinue use immediately.
+          By accessing or using our application, you agree to be bound by these Terms and Conditions and all applicable laws and regulations.
         </Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>2. User Representations</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>2. User Accounts</Text>
         <Text style={[styles.paragraph, { color: theme.subText }]}>
-          By using the App, you represent and warrant that:
-          {"\n"}• All registration information you submit will be true, accurate, current, and complete.
-          {"\n"}• You will maintain the accuracy of such information and promptly update such registration information as necessary.
-          {"\n"}• You have the legal capacity and you agree to comply with these Terms and Conditions.
-          {"\n"}• You are not a minor in the jurisdiction in which you reside.
-          {"\n"}• You will not access the App through automated or non-human means, whether through a bot, script or otherwise.
+          You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account.
         </Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>3. User Accounts</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>3. Use of the Service</Text>
         <Text style={[styles.paragraph, { color: theme.subText }]}>
-          You may be required to register with the App. You agree to keep your password confidential and will be responsible for all use of your account and password. We reserve the right to remove, reclaim, or change a username you select if we determine, in our sole discretion, that such username is inappropriate, obscene, or otherwise objectionable.
+          You agree not to use the service for any illegal or unauthorized purpose. You must not violate any laws in your jurisdiction while using the service.
         </Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>4. Prohibited Activities</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>4. Intellectual Property</Text>
         <Text style={[styles.paragraph, { color: theme.subText }]}>
-          You may not access or use the App for any purpose other than that for which we make the App available. The App may not be used in connection with any commercial endeavors except those that are specifically endorsed or approved by us.
-          {"\n"}Systematic retrieval of data or other content from the App to create or compile, directly or indirectly, a collection, compilation, database, or directory without written permission from us is prohibited.
+          The application and its original content, features, and functionality are owned by us and are protected by international copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws.
         </Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>5. Payments and Purchases</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>5. Termination</Text>
         <Text style={[styles.paragraph, { color: theme.subText }]}>
-          We accept the following forms of payment: Mobile Money and Credit Cards via our third-party processors. You agree to provide current, complete, and accurate purchase and account information for all purchases made via the App.
-          {"\n"}You agree to pay all charges at the prices then in effect for your purchases and any applicable fees (including the 1% maintenance fee for transactions), and you authorize us to charge your chosen payment provider for any such amounts upon placing your order.
+          We may terminate or suspend access to our service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.
         </Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>6. Wallet Transactions</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>6. Limitation of Liability</Text>
         <Text style={[styles.paragraph, { color: theme.subText }]}>
-          The Wallet feature allows users to store and transfer funds for use within the App. We are not a bank, and funds stored in your wallet are not insured deposits. We reserve the right to freeze or terminate your wallet access if we suspect fraudulent activity.
-        </Text>
-
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>7. Intellectual Property Rights</Text>
-        <Text style={[styles.paragraph, { color: theme.subText }]}>
-          Unless otherwise indicated, the App is our proprietary property and all source code, databases, functionality, software, website designs, audio, video, text, photographs, and graphics on the App (collectively, the "Content") and the trademarks, service marks, and logos contained therein (the "Marks") are owned or controlled by us or licensed to us.
-        </Text>
-
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>8. Limitation of Liability</Text>
-        <Text style={[styles.paragraph, { color: theme.subText }]}>
-          In no event will we or our directors, employees, or agents be liable to you or any third party for any direct, indirect, consequential, exemplary, incidental, special, or punitive damages, including lost profit, lost revenue, loss of data, or other damages arising from your use of the App.
-        </Text>
-
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>9. Contact Us</Text>
-        <Text style={[styles.paragraph, { color: theme.subText }]}>
-          In order to resolve a complaint regarding the App or to receive further information regarding use of the App, please contact us at terms@juliabash.com.
+          In no event shall we be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -110,12 +84,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 24,
     marginBottom: 12,
-  },
-  subSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 16,
-    marginBottom: 8,
   },
   paragraph: {
     fontSize: 15,

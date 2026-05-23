@@ -49,17 +49,8 @@ export interface ReelItem {
   isBirthday?: boolean;
 }
 
-export interface TrendingCeleb {
-  id: string;
-  name: string;
-  handle: string;
-  imageUrl: string;
-  isVerified?: boolean;
-}
-
 export interface Post {
   id: string;
-  authorId?: string;
   authorName: string;
   authorHandle: string;
   authorImage: string;
@@ -100,15 +91,4 @@ export interface Transaction {
   date: string;
   senderName?: string;
   status: 'completed' | 'pending';
-}
-
-export interface Notification {
-  id: string;
-  type: 'wish' | 'gift' | 'follow' | 'system' | 'mention';
-  user: string;
-  avatar: string;
-  message: string;
-  time: string;
-  isRead: boolean;
-  recipientId?: string;
 }

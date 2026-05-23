@@ -3,18 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { ArrowRight, ShoppingBag, Gift } from "lucide-react-native";
 import { useTheme } from "../context/ThemeContext";
 
-interface GiftShopBannerProps {
-  onPress?: () => void;
-}
-
-export default function GiftShopBanner({ onPress }: GiftShopBannerProps) {
+export default function GiftShopBanner() {
   const { theme, darkMode } = useTheme();
   return (
-    <TouchableOpacity 
-      activeOpacity={0.9} 
-      onPress={onPress}
-      style={[styles.container, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
-    >
+    <View style={[styles.container, { backgroundColor: theme.primary, shadowColor: theme.primary }]}>
       <View style={styles.content}>
         <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }]}>
           <ShoppingBag size={14} color="#f472b6" />
@@ -28,10 +20,10 @@ export default function GiftShopBanner({ onPress }: GiftShopBannerProps) {
           </Text>
         </View>
         
-        <View style={[styles.button, { backgroundColor: '#fff' }]}>
+        <TouchableOpacity style={[styles.button, { backgroundColor: '#fff' }]} activeOpacity={0.9}>
           <Text style={[styles.buttonText, { color: theme.primary }]}>Browse Gifts</Text>
           <ArrowRight size={14} color={theme.primary} />
-        </View>
+        </TouchableOpacity>
       </View>
       
       {/* Background Decor */}
@@ -42,7 +34,7 @@ export default function GiftShopBanner({ onPress }: GiftShopBannerProps) {
         </View>
         <View style={[styles.decorGiftBoxSmall, { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]} />
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 

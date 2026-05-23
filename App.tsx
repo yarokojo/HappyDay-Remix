@@ -9,9 +9,8 @@
  */
 
 import "react-native-gesture-handler";
-import React, { useState, useEffect } from "react";
-import { View, StyleSheet, SafeAreaView, Platform, Text, TouchableOpacity, useWindowDimensions, KeyboardAvoidingView, ActivityIndicator, Alert } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import React, { useState } from "react";
+import { View, StyleSheet, SafeAreaView, Platform, Text, TouchableOpacity, useWindowDimensions, KeyboardAvoidingView } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Header from "./src/components/Header";
@@ -29,14 +28,8 @@ import PostDetailScreen from "./src/screens/PostDetailScreen";
 import WebViewScreen from "./src/screens/WebViewScreen";
 import PrivacyPolicyScreen from "./src/screens/PrivacyPolicyScreen";
 import TermsAndConditionsScreen from "./src/screens/TermsAndConditionsScreen";
-import LoginScreen from "./src/screens/LoginScreen";
-import SetBirthdayScreen from "./src/screens/SetBirthdayScreen";
-import SideNav from "./src/components/SideNav";
 import { Post, Story, ReelItem } from "./src/types";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
-import { ActivityProvider } from "./src/context/ActivityContext";
-import { AuthProvider, useAuth } from "./src/context/AuthContext";
-import { supabase } from "./src/lib/supabase";
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
@@ -74,7 +67,6 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 
 function MainApp() {
   const { darkMode, theme } = useTheme();
-  const { user, signIn, loading: authLoading, isAdmin, isSigningIn, error: authError } = useAuth();
   const { width } = useWindowDimensions();
   const isLargeScreen = width > 1024;
   const isTablet = width > 768 && width <= 1024;
@@ -84,9 +76,61 @@ function MainApp() {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [webViewUrl, setWebViewUrl] = useState<string | null>(null);
   const [webViewTitle, setWebViewTitle] = useState<string | null>(null);
+  const [userProfileImage, setUserProfileImage] = useState("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop");
   const [postMode, setPostMode] = useState<'post' | 'video'>('post');
   const [seenStoryIds, setSeenStoryIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+  const [reels, setReels] = useState<ReelItem[]>([
+    {
+      id: "1",
+      user: "Julia Mason",
+      handle: "@julia_m",
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
+      description: "Best surprise party ever! Thanks everyone for making my day so special 🎂✨ #birthday #party #vibes",
+      music: "Original Audio - Birthday Beats",
+      likes: "12.4k",
+      comments: "428",
+      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-girl-blowing-out-candles-on-a-birthday-cake-1152-large.mp4",
+      poster: "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800",
+      isBirthday: true
+    },
+    {
+      id: "2",
+      user: "Kevin Hart",
+      handle: "@kev_hart",
+      avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop",
+      description: "Unboxing the premium cake Julia sent! This is wild! 🍰🎁 #unboxing #gift #celebration",
+      music: "Chill Party Mix - Vol 4",
+      likes: "8.2k",
+      comments: "156",
+      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-celebrating-with-sparklers-at-a-party-1154-large.mp4",
+      poster: "https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=800"
+    },
+    {
+      id: "3",
+      user: "Sarah Jenkins",
+      handle: "@sarah_j",
+      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop",
+      description: "Check out this graduation party vibe! So proud of the class of 2024! 🎓✨ #graduation #party",
+      music: "Success & Dreams - Instrumental",
+      likes: "15.7k",
+      comments: "892",
+      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-people-celebrating-with-confetti-and-champagne-1156-large.mp4",
+      poster: "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=800"
+    },
+    {
+      id: "4",
+      user: "Mike Ross",
+      handle: "@mike_ross",
+      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop",
+      description: "Wedding season is here! Look at this beautiful ceremony 💍❤️ #wedding #love #celebration",
+      music: "Wedding Vows - Slow Waltz",
+      likes: "25.1k",
+      comments: "1.2k",
+      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-bride-and-groom-clinking-glasses-at-a-party-1153-large.mp4",
+      poster: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800"
+    }
+  ]);
   const [stories, setStories] = useState<Story[]>([
     { 
       id: "1", 
@@ -103,150 +147,80 @@ function MainApp() {
       imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=128&h=128&fit=crop",
       contentUrl: "https://images.unsplash.com/photo-1530103578275-21127a7c569a?w=1080&h=1920&fit=crop",
       timestamp: "4h ago"
+    },
+    { 
+      id: "3", 
+      userName: "Elena R.", 
+      color: "border-indigo-500", 
+      imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=128&h=128&fit=crop",
+      contentUrl: "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=1080&h=1920&fit=crop",
+      timestamp: "1h ago"
+    },
+    { 
+      id: "4", 
+      userName: "David", 
+      color: "border-slate-200", 
+      imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=128&h=128&fit=crop",
+      contentUrl: "https://images.unsplash.com/photo-1517263904808-5dc91e3e7044?w=1080&h=1920&fit=crop",
+      timestamp: "6h ago"
+    },
+    { 
+      id: "5", 
+      userName: "Chloe", 
+      color: "border-pink-400", 
+      imageUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=128&h=128&fit=crop",
+      contentUrl: "https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1080&h=1920&fit=crop",
+      timestamp: "8h ago"
+    },
+  ]);
+  const [posts, setPosts] = useState<Post[]>([
+    {
+      id: "p1",
+      authorName: "Sarah Jenkins",
+      authorHandle: "@sarahj",
+      authorImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
+      content: "Counting down the days until Julia's big bash! Can't believe she's turning 24 soon. Time flies! 🎂✨",
+      timestamp: "2 hours ago",
+      likes: 24,
+      comments: 5,
+      reposts: 2,
+      views: 142,
+      location: "Grand Ballroom, NYC",
+      image: "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800&h=400&fit=crop",
+      isBookmarked: false,
+      commentsList: [
+        {
+          id: "c1",
+          authorName: "Alex Johnson",
+          authorImage: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop",
+          content: "Can't wait for the party! I've got a surprise ready. 🎈",
+          timestamp: "1 hour ago"
+        },
+        {
+          id: "c2",
+          authorName: "Marcus Thorne",
+          authorImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop",
+          content: "Me too! It's going to be epic.",
+          timestamp: "45 mins ago"
+        }
+      ]
+    },
+    {
+      id: "p2",
+      authorName: "Marcus Thorne",
+      authorHandle: "@marcus_t",
+      authorImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop",
+      content: "Just picked up the most amazing gift from the shop. Julia is going to love it! 🎁",
+      timestamp: "5 hours ago",
+      likes: 12,
+      comments: 2,
+      reposts: 0,
+      views: 85,
+      isBookmarked: true
     }
   ]);
-  const [posts, setPosts] = useState<Post[]>([]);
 
-  useEffect(() => {
-    // Load local data for guests
-    if (typeof localStorage !== 'undefined') {
-      const localPosts = localStorage.getItem('guest_posts');
-      if (localPosts) {
-        try {
-          const parsed = JSON.parse(localPosts);
-          setPosts(prev => {
-            // Merge avoiding duplicates
-            const existingIds = new Set(prev.map(p => p.id));
-            const newPosts = parsed.filter((p: any) => !existingIds.has(p.id));
-            return [...newPosts, ...prev];
-          });
-        } catch (e) {
-          console.error("Failed to parse guest posts", e);
-        }
-      }
-    }
-
-    if (!user) return;
-    
-    const fetchPosts = async () => {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(20);
-      
-      if (error) {
-        console.error("Error fetching posts:", error);
-        return;
-      }
-
-      if (data) {
-        console.log(`Fetched ${data.length} posts from Supabase`);
-        const fetchedPosts: Post[] = data.map(item => ({
-          id: item.id,
-          ...item,
-          authorId: item.author_id,
-          authorName: item.author_name,
-          authorHandle: item.author_handle,
-          authorImage: item.author_image,
-          celebrationType: item.celebration_type,
-          celebrantName: item.celebrant_name,
-          commentsList: item.comments_list || [],
-          timestamp: item.created_at ? new Date(item.created_at).toLocaleString() : "Just now",
-        } as Post));
-        setPosts(fetchedPosts);
-      }
-    };
-
-    fetchPosts();
-
-    // Set up real-time subscription
-    const subscription = supabase
-      .channel('public:posts')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-        fetchPosts();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(subscription);
-    };
-  }, [user]);
-
-  // Derived reels state from posts that have videos
-  const reels = React.useMemo(() => {
-    const videoPosts = posts.filter(p => !!p.video).map(p => {
-      const authorName = p.authorName || "Unknown";
-      const authorHandle = p.authorHandle || "@" + (authorName.toLowerCase().replace(/\s+/g, '_'));
-      
-      return {
-        id: p.id,
-        user: authorName,
-        handle: authorHandle,
-        avatar: p.authorImage,
-        description: p.content,
-        music: "Original Audio",
-        likes: (p.likes || 0).toLocaleString(),
-        comments: (p.comments || 0).toLocaleString(),
-        videoUrl: p.video!,
-        poster: p.image || "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800",
-        isBirthday: p.celebrationType === 'birthday'
-      };
-    });
-
-    const samples: ReelItem[] = [
-      {
-        id: "sample1",
-        user: "Julia Mason",
-        handle: "@julia_mason",
-        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
-        description: "Getting ready for the big night! 🎉 #birthdaybash",
-        music: "Birthday Anthem - Original",
-        likes: "1.2k",
-        comments: "142",
-        videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-girl-blowing-out-birthday-candles-4437-large.mp4",
-        poster: "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800",
-        isBirthday: true
-      },
-      {
-        id: "sample2",
-        user: "Kevin Hart",
-        handle: "@kevin_hart",
-        avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop",
-        description: "Surprise party success! 🎊✨",
-        music: "Party Time - Vibe",
-        likes: "856",
-        comments: "94",
-        videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-party-confetti-falling-close-up-of-hands-throwing-427-large.mp4",
-        poster: "https://images.unsplash.com/photo-1530103578275-21127a7c569a?w=800"
-      }
-    ];
-
-    return [...videoPosts, ...samples];
-  }, [posts]);
-
-
-  if (authLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg, gap: 20 }}>
-        <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={{ color: theme.text, fontSize: 16, fontWeight: '600' }}>Loading Julia's Birthday Bash...</Text>
-      </View>
-    );
-  }
-
-  if (!user) {
-    return <LoginScreen />;
-  }
-
-  // Handle birthday not set
-  if (!user.birthDate) {
-    return <SetBirthdayScreen />;
-  }
-
-  const userProfileImage = user.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop";
-
-  const handlePost = async (
+  const handlePost = (
     content: string, 
     image?: string, 
     video?: string, 
@@ -255,92 +229,48 @@ function MainApp() {
     celebrantName?: string,
     feeling?: string
   ) => {
-    console.log("Creating new post with content:", content.substring(0, 20) + "...");
-    
-    // Optimistic Update / Guest Support
-    const newOptimisticPost: Post = {
-      id: 'opt_' + Date.now().toString(),
-      authorId: user?.uid || 'guest',
-      authorName: user?.displayName || "Test User",
-      authorHandle: "@" + (user?.displayName?.toLowerCase().replace(/\s+/g, '_') || 'user'),
+    const newPost: Post = {
+      id: Date.now().toString(),
+      authorName: "Alex Johnson",
+      authorHandle: "@alex_j",
       authorImage: userProfileImage,
-      content: content || "",
-      image,
-      video,
-      location,
-      celebrationType: celebrationType || 'general',
-      celebrantName,
-      feeling,
+      content,
+      timestamp: "Just now",
       likes: 0,
       comments: 0,
       reposts: 0,
       views: 0,
-      timestamp: "Just now",
-      commentsList: []
+      image,
+      video,
+      location,
+      celebrationType,
+      celebrantName,
+      feeling,
+      isBookmarked: false
     };
-
-    setPosts(prev => [newOptimisticPost, ...prev]);
-
-    try {
-      if (user?.uid && !user.uid.startsWith('guest_')) {
-        const postData: any = {
-          author_id: user.uid,
-          author_name: user.displayName || "Unknown",
-          author_handle: "@" + (user.displayName?.toLowerCase().replace(/\s+/g, '_') || 'user'),
-          author_image: userProfileImage,
-          content: content || "",
-          likes: 0,
-          comments: 0,
-          reposts: 0,
-          views: 0,
-          created_at: new Date().toISOString()
-        };
-
-        if (image) postData.image = image;
-        if (video) postData.video = video;
-        if (location) postData.location = location;
-        if (celebrationType) postData.celebration_type = celebrationType;
-        if (celebrantName) postData.celebrant_name = celebrantName;
-        if (feeling) postData.feeling = feeling;
-
-        const { data, error } = await supabase
-          .from('posts')
-          .insert(postData)
-          .select()
-          .single();
-
-        if (error) throw error;
-        
-        console.log("Post created with ID:", data.id);
-        
-        // Replace optimistic post with actual one
-        setPosts(prev => prev.map(p => p.id === newOptimisticPost.id ? {
-          ...p,
-          id: data.id,
-          timestamp: data.created_at ? new Date(data.created_at).toLocaleString() : "Just now"
-        } : p));
-      } else {
-        // For guest users, save to local storage
-        const localPosts = localStorage.getItem('guest_posts');
-        const updatedLocalPosts = [newOptimisticPost, ...(localPosts ? JSON.parse(localPosts) : [])];
-        localStorage.setItem('guest_posts', JSON.stringify(updatedLocalPosts));
-      }
-      
-      if (video) {
-        setActiveTab("video");
-      } else {
-        setActiveTab("home");
-      }
-      setView(null);
-    } catch (error) {
-      console.error("handlePost detailed error:", error);
-      // Revert optimistic update on error
-      setPosts(prev => prev.filter(p => p.id !== newOptimisticPost.id));
-      Alert.alert("Error", "Failed to share post. Please check your connection.");
+    if (video) {
+      const newReel: ReelItem = {
+        id: Date.now().toString(),
+        user: "Alex Johnson",
+        handle: "@alex_j",
+        avatar: userProfileImage,
+        description: content,
+        music: "Original Audio",
+        likes: "0",
+        comments: "0",
+        videoUrl: video,
+        poster: "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800", // Default poster
+      };
+      setReels([newReel, ...reels]);
+      setActiveTab("video");
+    } else {
+      setActiveTab("home");
     }
+    setSearchQuery(""); // Clear search so the new post is visible in the feed
+    setPosts([newPost, ...posts]);
   };
 
-  const handleEditPost = async (
+  const handleEditPost = (
     postId: string, 
     newContent: string, 
     newImage?: string, 
@@ -350,122 +280,85 @@ function MainApp() {
     celebrantName?: string,
     feeling?: string
   ) => {
-    try {
-      const updateData: any = {
-        content: newContent || "",
-      };
-
-      if (newImage !== undefined) updateData.image = newImage || null;
-      if (newVideo !== undefined) updateData.video = newVideo || null;
-      if (newLocation !== undefined) updateData.location = newLocation || null;
-      if (celebrationType !== undefined) updateData.celebration_type = celebrationType || null;
-      if (celebrantName !== undefined) updateData.celebrant_name = celebrantName || null;
-      if (feeling !== undefined) updateData.feeling = feeling || null;
-
-      const { error } = await supabase
-        .from('posts')
-        .update(updateData)
-        .eq('id', postId);
-      
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error editing post:", error);
-    }
+    setPosts(prevPosts => prevPosts.map(post => 
+      post.id === postId ? { 
+        ...post, 
+        content: newContent, 
+        image: newImage, 
+        video: newVideo, 
+        location: newLocation,
+        celebrationType,
+        celebrantName,
+        feeling,
+        isEdited: true 
+      } : post
+    ));
   };
 
-  const handleRepost = async (postId: string) => {
-    try {
-      const post = posts.find(p => p.id === postId);
-      if (post) {
-        const { error } = await supabase
-          .from('posts')
-          .update({ reposts: (post.reposts || 0) + 1 })
-          .eq('id', postId);
-        if (error) throw error;
+  const handleRepost = (postId: string) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId) {
+        return { ...post, reposts: post.reposts + 1 };
       }
-    } catch (error) {
-      console.error("Error reposting:", error);
-    }
+      return post;
+    }));
   };
 
   const handleToggleBookmark = (postId: string) => {
-    // local only or sync with user profile
-  };
-
-  const handleLikePost = async (postId: string) => {
-    try {
-      const post = posts.find(p => p.id === postId);
-      if (post) {
-        const { error } = await supabase
-          .from('posts')
-          .update({ likes: (post.likes || 0) + 1 })
-          .eq('id', postId);
-        if (error) throw error;
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId) {
+        return { ...post, isBookmarked: !post.isBookmarked };
       }
-    } catch (error) {
-      console.error("Error liking post:", error);
-    }
+      return post;
+    }));
   };
 
-  const handleEditComment = (postId: string, commentId: string, content: string) => {
-    // stub
+  const handleLikePost = (postId: string) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId) {
+        return { ...post, likes: post.likes + 1 };
+      }
+      return post;
+    }));
   };
 
-  const handleAddComment = async (postId: string, content: string) => {
-    try {
-      const post = posts.find(p => p.id === postId);
-      if (post && user) {
-        const newCommentObj = {
+  const handleEditComment = (postId: string, commentId: string, newContent: string) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId && post.commentsList) {
+        return {
+          ...post,
+          commentsList: post.commentsList.map(comment => 
+            comment.id === commentId ? { ...comment, content: newContent } : comment
+          )
+        };
+      }
+      return post;
+    }));
+  };
+
+  const handleAddComment = (postId: string, content: string) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId) {
+        const newComment = {
           id: Date.now().toString(),
-          authorName: user.displayName || "Anonymous",
-          authorImage: user.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop",
+          authorName: "Alex Johnson",
+          authorImage: userProfileImage,
           content,
           timestamp: "Just now",
           isOwn: true
         };
-
-        const updatedCommentsList = [...(post.commentsList || []), newCommentObj];
-        
-        const { error } = await supabase
-          .from('posts')
-          .update({ 
-            comments: (post.comments || 0) + 1,
-            comments_list: updatedCommentsList
-          })
-          .eq('id', postId);
-        
-        if (error) throw error;
+        return {
+          ...post,
+          comments: post.comments + 1,
+          commentsList: post.commentsList ? [...post.commentsList, newComment] : [newComment]
+        };
       }
-    } catch (error) {
-      console.error("Error adding comment:", error);
-    }
+      return post;
+    }));
   };
 
-  const handleIncrementViews = async (postId: string) => {
-    try {
-      const post = posts.find(p => p.id === postId);
-      if (post) {
-        const { error } = await supabase
-          .from('posts')
-          .update({ views: (post.views || 0) + 1 })
-          .eq('id', postId);
-        if (error) throw error;
-      }
-    } catch (error) {
-      console.warn("View increment failed", error);
-    }
-  };
-
-  const handleDeletePost = async (postId: string) => {
-    try {
-      const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', postId);
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error deleting post:", error);
-    }
+  const handleDeletePost = (postId: string) => {
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
   const handleDeleteComment = (postId: string, commentId: string) => {
@@ -518,10 +411,6 @@ function MainApp() {
       setWebViewUrl(url);
       setWebViewTitle(title || null);
     }
-    if (screen === "gift_shop") {
-      handleTabChange("gift_shop");
-      return;
-    }
     setView(screen);
   };
 
@@ -533,36 +422,6 @@ function MainApp() {
   };
 
   const renderScreen = () => {
-  const filteredPosts = posts.filter(post => {
-    const s = searchQuery.toLowerCase();
-    const content = (post.content || "").toLowerCase();
-    const authorName = (post.authorName || "").toLowerCase();
-    const authorHandle = (post.authorHandle || "").toLowerCase();
-    return content.includes(s) || authorName.includes(s) || authorHandle.includes(s);
-  });
-
-    const homeProps = {
-      onNavigate: navigateTo,
-      posts: filteredPosts,
-      stories,
-      seenStoryIds,
-      userProfileImage,
-      onSeenStory: handleSeenStory,
-      onAddStory: handleAddStory,
-      onEditPost: handleEditPost,
-      onLikePost: handleLikePost,
-      onEditComment: handleEditComment,
-      onAddComment: handleAddComment,
-      onIncrementViews: handleIncrementViews,
-      onDeletePost: handleDeletePost,
-      onDeleteComment: handleDeleteComment,
-      onToggleFollow: handleToggleFollow,
-      onRepost: handleRepost,
-      onToggleBookmark: handleToggleBookmark,
-      searchQuery,
-      onSearchChange: setSearchQuery
-    };
-
     if (view === "webview" && webViewUrl) {
       return (
         <WebViewScreen 
@@ -574,17 +433,37 @@ function MainApp() {
     }
     if (view === "privacy_policy") return <PrivacyPolicyScreen onBack={() => setView(null)} />;
     if (view === "terms") return <TermsAndConditionsScreen onBack={() => setView(null)} />;
-    
-    // Admin only screens
-    if (view === "wallet") {
-      if (isAdmin) return <WalletScreen onBack={() => setView(null)} />;
-      return <HomeScreen {...homeProps} posts={filteredPosts} />; // Fallback
-    }
-
+    if (view === "gift_shop") return <GiftShopScreen onBack={() => setView(null)} onNavigate={navigateTo} />;
+    if (view === "wallet") return <WalletScreen onBack={() => setView(null)} />;
     if (view === "notifications") return <NotificationScreen onBack={() => setView(null)} />;
     if (view === "group_gifts") return <GroupGiftScreen onBack={() => setView(null)} />;
-    if (view === "post") return <PostScreen initialMode={postMode} onPost={handlePost} onBack={() => setView(null)} />;
-    if (view === "video") return <VideoScreen reels={reels} onBack={() => setView(null)} onNavigate={navigateTo} />;
+    if (view === "post") return <PostScreen userProfileImage={userProfileImage} initialMode={postMode} onPost={handlePost} onBack={() => setView(null)} />;
+    if (view === "video") return <VideoScreen reels={reels} userProfileImage={userProfileImage} onBack={() => setView(null)} onNavigate={navigateTo} />;
+    
+    const homeProps = {
+      onNavigate: navigateTo,
+      posts,
+      stories,
+      seenStoryIds,
+      userProfileImage,
+      onSeenStory: handleSeenStory,
+      onAddStory: handleAddStory,
+      onEditPost: handleEditPost,
+      onLikePost: handleLikePost,
+      onEditComment: handleEditComment,
+      onAddComment: handleAddComment,
+      onDeletePost: handleDeletePost,
+      onDeleteComment: handleDeleteComment,
+      onToggleFollow: handleToggleFollow,
+      onRepost: handleRepost,
+      onToggleBookmark: handleToggleBookmark
+    };
+
+    const filteredPosts = posts.filter(post => 
+      post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.authorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.authorHandle.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     if (view === "post_detail" && selectedPostId) {
       const post = posts.find(p => p.id === selectedPostId);
@@ -597,81 +476,64 @@ function MainApp() {
       case "home":
         return <HomeScreen {...homeProps} posts={filteredPosts} />;
       case "calendar":
-        return <CalendarScreen onNavigate={navigateTo} />;
+        return <CalendarScreen />;
       case "gift_shop":
-        return <GiftShopScreen onBack={() => handleTabChange("home")} onNavigate={navigateTo} />;
+        return <GiftShopScreen onBack={() => handleTabChange("home")} />;
       case "video":
-        return <VideoScreen reels={reels} onBack={() => setActiveTab("home")} onNavigate={navigateTo} />;
+        return <VideoScreen reels={reels} userProfileImage={userProfileImage} onBack={() => setActiveTab("home")} onNavigate={navigateTo} />;
       case "profile":
-        return <ProfileScreen onNavigate={navigateTo} />;
+        return <ProfileScreen userProfileImage={userProfileImage} onUpdateProfileImage={setUserProfileImage} onNavigate={navigateTo} />;
       default:
         return <HomeScreen {...homeProps} posts={filteredPosts} />;
     }
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
-          <StatusBar style={darkMode ? "light" : "dark"} />
+    <SafeAreaProvider>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+        <StatusBar style={darkMode ? "light" : "dark"} />
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+          style={{ flex: 1 }}
+        >
           <View style={[
             styles.container, 
             { 
               backgroundColor: theme.bg, 
               borderColor: theme.border,
-              maxWidth: isLargeScreen ? 1440 : (isTablet ? 1024 : '100%'),
+              maxWidth: isLargeScreen ? 1200 : (isTablet ? 800 : '100%'),
               borderLeftWidth: (isLargeScreen || isTablet) ? 1 : 0,
               borderRightWidth: (isLargeScreen || isTablet) ? 1 : 0,
-              flexDirection: (isLargeScreen || isTablet) ? 'row' : 'column',
             }
           ]}>
-            {(isLargeScreen || isTablet) && (
-              <SideNav 
-                activeTab={activeTab} 
-                setActiveTab={handleTabChange} 
+            {!view && activeTab !== "video" && (
+              <Header 
                 onNavigate={navigateTo} 
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                userProfileImage={userProfileImage}
               />
             )}
-
-            <View style={{ flex: 1, backgroundColor: theme.bg }}>
-              {!view && activeTab !== "video" && activeTab !== "gift_shop" && (
-                <Header 
-                  onNavigate={navigateTo} 
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  userProfileImage={userProfileImage}
-                />
-              )}
-              
-              <KeyboardAvoidingView 
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.screenContent}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-              >
-                {renderScreen()}
-              </KeyboardAvoidingView>
-      
-              {!(isLargeScreen || isTablet) && (
-                <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} />
-              )}
+            
+            <View style={styles.screenContent}>
+              {renderScreen()}
             </View>
+    
+            <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} />
           </View>
-        </SafeAreaView>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <ActivityProvider>
-          <ErrorBoundary>
-            <MainApp />
-          </ErrorBoundary>
-        </ActivityProvider>
-      </AuthProvider>
+      <ErrorBoundary>
+        <MainApp />
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from "
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useTheme } from "../context/ThemeContext";
 
-export default function CalendarScreen({ onNavigate }: { onNavigate?: (screen: string, id?: string) => void }) {
+export default function CalendarScreen() {
   const { theme, darkMode } = useTheme();
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -62,11 +62,8 @@ export default function CalendarScreen({ onNavigate }: { onNavigate?: (screen: s
                 <Text style={[styles.eventMeta, { color: theme.subText }]}>Main Event • 7:00 PM</Text>
               </View>
             </View>
-            <TouchableOpacity 
-              style={[styles.detailsBtn, { backgroundColor: theme.itemBg }]}
-              onPress={() => onNavigate?.('gift_shop')}
-            >
-              <Text style={[styles.detailsBtnText, { color: theme.primary }]}>Gift Julia</Text>
+            <TouchableOpacity style={[styles.detailsBtn, { backgroundColor: theme.itemBg }]}>
+              <Text style={[styles.detailsBtnText, { color: theme.primary }]}>Details</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -81,7 +78,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
-    maxWidth: 900,
+    maxWidth: 600,
     alignSelf: 'center',
     width: '100%',
   },

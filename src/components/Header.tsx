@@ -1,176 +1,80 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, Platform, useWindowDimensions, ScrollView } from "react-native";
-import { Bell, Search, PlusCircle, X, Clock, ArrowRight, TrendingUp, Gift } from "lucide-react-native";
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, Platform, useWindowDimensions } from "react-native";
+import { Bell, Search, PlusCircle, X } from "lucide-react-native";
 import { MotiView, AnimatePresence } from "moti";
 import { useTheme } from "../context/ThemeContext";
 
 interface HeaderProps {
-  onNavigate?: (screen: string, id?: string) => void;
+  onNavigate?: (screen: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   userProfileImage: string;
 }
 
-const RECENT_SEARCHES = ["Julia Mason birthday", "Gift shop", "Group gifting", "Party supplies"];
-
 export default function Header({ onNavigate, searchQuery, onSearchChange, userProfileImage }: HeaderProps) {
   const { theme, darkMode } = useTheme();
   const { width } = useWindowDimensions();
-  const isLargeScreen = width > 1024;
-  const isTablet = width > 768 && width <= 1024;
+  const isLargeScreen = width > 768;
   const [isSearching, setIsSearching] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-
-  useEffect(() => {
-    if (searchQuery.length > 0) {
-      setShowSuggestions(true);
-    } else {
-      setShowSuggestions(false);
-    }
-  }, [searchQuery]);
 
   const handleSearchToggle = () => {
     setIsSearching(!isSearching);
     if (isSearching) {
       onSearchChange("");
-      setShowSuggestions(false);
     }
-  };
-
-  const handleBlur = () => {
-    // Timeout to allow clicking suggestions
-    setTimeout(() => {
-      if (!isLargeScreen && !isTablet) {
-        // On mobile, we keep it active if isSearching is true
-      } else {
-        setShowSuggestions(false);
-      }
-    }, 200);
   };
 
   return (
     <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
       <View style={styles.contentWrap}>
         <View style={styles.left}>
-          <TouchableOpacity onPress={() => onNavigate?.('home')} style={styles.logoWrapper}>
-            <View style={[styles.logoIconContainer, { backgroundColor: theme.primary + '15' }]}>
-              <Gift size={24} color={theme.primary} />
-            </View>
-          </TouchableOpacity>
-          {!isSearching && (
-            <TouchableOpacity onPress={() => onNavigate?.('home')}>
-              <Text style={[styles.title, { color: theme.text }]}>BirthDayApp</Text>
-            </TouchableOpacity>
-          )}
+          <View style={[styles.logoSquare, { backgroundColor: theme.primary }]}>
+            <View style={styles.logoDot} />
+          </View>
+          {!isSearching && <Text style={[styles.title, { color: theme.text }]}>BirthDayApp</Text>}
         </View>
 
         {/* Integrated Search for Large Screens or Active Search for Mobile */}
-        {(isLargeScreen || isTablet || isSearching) ? (
+        {(isLargeScreen || isSearching) ? (
           <MotiView 
             key="search-bar"
-            from={{ opacity: 0, translateX: isLargeScreen ? 0 : 20 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            style={[styles.searchContainer, (isLargeScreen || isTablet) && styles.searchContainerLarge]}
+            from={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={[styles.searchContainer, isLargeScreen && styles.searchContainerLarge]}
           >
             <View style={[styles.searchInputWrapper, { backgroundColor: theme.itemBg, borderColor: theme.border }]}>
               <Search size={18} color={theme.subText} style={styles.searchIconInside} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
-                placeholder="Search birthday, gifts, friends..."
+                placeholder="Search events..."
                 placeholderTextColor={theme.subText}
                 value={searchQuery}
                 onChangeText={onSearchChange}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={handleBlur}
-                autoFocus={isSearching && !isLargeScreen && !isTablet}
+                autoFocus={isSearching && !isLargeScreen}
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => onSearchChange("")} style={styles.clearBtn}>
-                  <X size={16} color={theme.subText} />
+                <TouchableOpacity onPress={() => onSearchChange("")}>
+                  <X size={18} color={theme.subText} />
                 </TouchableOpacity>
               )}
             </View>
-            
-            {!isLargeScreen && !isTablet && (
+            {!isLargeScreen && (
               <TouchableOpacity onPress={handleSearchToggle} style={styles.cancelButton}>
                 <Text style={[styles.cancelText, { color: theme.primary }]}>Cancel</Text>
               </TouchableOpacity>
             )}
-
-            {/* Global Search Suggestions Dropdown */}
-            {showSuggestions && (
-              <MotiView
-                from={{ opacity: 0, translateY: -10 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                style={[styles.suggestionsDropdown, { backgroundColor: theme.card, borderColor: theme.border }]}
-              >
-                <ScrollView keyboardShouldPersistTaps="handled">
-                  <View style={styles.suggestionSection}>
-                    <View style={styles.suggestionSectionHeader}>
-                      <Clock size={14} color={theme.subText} />
-                      <Text style={[styles.suggestionSectionTitle, { color: theme.subText }]}>Recent Searches</Text>
-                    </View>
-                    {RECENT_SEARCHES.map((item, idx) => (
-                      <TouchableOpacity 
-                        key={idx} 
-                        style={styles.suggestionItem}
-                        onPress={() => {
-                          onSearchChange(item);
-                          setShowSuggestions(false);
-                        }}
-                      >
-                        <Text style={[styles.suggestionText, { color: theme.text }]}>{item}</Text>
-                        <ArrowRight size={14} color={theme.subText} />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  <View style={[styles.suggestionDivider, { backgroundColor: theme.border }]} />
-                  <View style={styles.suggestionSection}>
-                    <View style={styles.suggestionSectionHeader}>
-                      <TrendingUp size={14} color={theme.primary} />
-                      <Text style={[styles.suggestionSectionTitle, { color: theme.subText }]}>Trending</Text>
-                    </View>
-                    <View style={styles.trendingChips}>
-                      {["#BdayBash", "#Gifts", "#Parties", "#Celebrations"].map((tag, idx) => (
-                        <TouchableOpacity 
-                          key={idx} 
-                          style={[styles.trendingChip, { backgroundColor: theme.itemBg, borderColor: theme.border }]}
-                          onPress={() => {
-                            onSearchChange(tag);
-                            setShowSuggestions(false);
-                          }}
-                        >
-                          <Text style={[styles.trendingChipText, { color: theme.primary }]}>{tag}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                </ScrollView>
-              </MotiView>
-            )}
           </MotiView>
         ) : null}
 
-        {!(isSearching && !isLargeScreen && !isTablet) && (
+        {!isSearching && (
           <View style={styles.right}>
-            {(isLargeScreen || isTablet) && (
-              <TouchableOpacity 
-                onPress={() => onNavigate?.('post')}
-                style={[styles.createPostBtn, { backgroundColor: theme.primary }]}
-              >
-                <PlusCircle size={18} color="#fff" />
-                <Text style={styles.createPostBtnText}>Create Post</Text>
-              </TouchableOpacity>
-            )}
-            {!(isLargeScreen || isTablet) && !isSearching && (
-              <TouchableOpacity 
-                onPress={() => onNavigate?.('post')}
-                style={styles.iconButton}
-              >
-                <PlusCircle size={22} color={theme.primary} />
-              </TouchableOpacity>
-            )}
-            {!isLargeScreen && !isTablet && !isSearching && (
+            <TouchableOpacity 
+              onPress={() => onNavigate?.('post')}
+              style={styles.iconButton}
+            >
+              <PlusCircle size={22} color={theme.primary} />
+            </TouchableOpacity>
+            {!isLargeScreen && (
               <TouchableOpacity onPress={handleSearchToggle} style={styles.iconButton}>
                 <Search size={22} color={theme.subText} />
               </TouchableOpacity>
@@ -223,13 +127,13 @@ const styles = StyleSheet.create({
   },
   searchContainerLarge: {
     maxWidth: 400,
-    marginHorizontal: 12,
+    marginHorizontal: 20,
   },
   searchInputWrapper: {
     flex: 1,
-    height: 44,
+    height: 40,
     backgroundColor: '#f8fafc',
-    borderRadius: 12,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
@@ -243,88 +147,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#0f172a',
-    fontWeight: '600',
-    paddingVertical: 0,
-  },
-  clearBtn: {
-    padding: 6,
-  },
-  suggestionsDropdown: {
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    right: 0,
-    borderRadius: 16,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 10,
-    maxHeight: 300,
-    padding: 8,
-    zIndex: 2000,
-  },
-  suggestionSection: {
-    padding: 8,
-  },
-  suggestionSectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  suggestionSectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  suggestionText: {
-    fontSize: 14,
     fontWeight: '500',
-  },
-  suggestionDivider: {
-    height: 1,
-    marginVertical: 4,
-  },
-  trendingChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  trendingChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  trendingChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  createPostBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  createPostBtnText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '800',
+    paddingVertical: 0, // Critical for height consistency
   },
   cancelButton: {
     paddingHorizontal: 4,
@@ -339,22 +163,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  logoWrapper: {
-    width: 44,
-    height: 44,
+  logoSquare: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#4f46e5',
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    width: '100%',
-    height: '100%',
+  logoDot: {
+    width: 12,
+    height: 12,
+    backgroundColor: '#fff',
+    borderRadius: 6,
   },
   title: {
     fontSize: 20,

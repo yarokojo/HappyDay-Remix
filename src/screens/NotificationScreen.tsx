@@ -3,11 +3,58 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Platform }
 import { ArrowLeft, Bell, Gift, Heart, UserPlus, Star } from "lucide-react-native";
 import { MotiView, AnimatePresence } from "moti";
 import { useTheme } from "../context/ThemeContext";
-import { useActivity } from "../context/ActivityContext";
+
+interface Notification {
+  id: string;
+  type: 'wish' | 'gift' | 'follow' | 'system';
+  user: string;
+  avatar: string;
+  message: string;
+  time: string;
+  isRead: boolean;
+}
+
+const NOTIFICATIONS: Notification[] = [
+  {
+    id: "1",
+    type: "wish",
+    user: "Julia Mason",
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
+    message: "sent you a birthday wish! 🎂",
+    time: "2m ago",
+    isRead: false
+  },
+  {
+    id: "2",
+    type: "gift",
+    user: "Kevin Hart",
+    avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop",
+    message: "sent you a Surprise Gift! 🎁",
+    time: "15m ago",
+    isRead: false
+  },
+  {
+    id: "3",
+    type: "follow",
+    user: "Samantha Lee",
+    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop",
+    message: "started following you.",
+    time: "1h ago",
+    isRead: true
+  },
+  {
+    id: "4",
+    type: "system",
+    user: "BirthDayApp",
+    avatar: "",
+    message: "Your virtual celebration starts in 1 hour! 🎊",
+    time: "3h ago",
+    isRead: true
+  }
+];
 
 export default function NotificationScreen({ onBack }: { onBack: () => void }) {
   const { theme } = useTheme();
-  const { notifications, markAsRead } = useActivity();
   const [activeFilter, setActiveFilter] = useState('all');
 
   const getIcon = (type: string) => {
@@ -15,23 +62,16 @@ export default function NotificationScreen({ onBack }: { onBack: () => void }) {
       case 'wish': return <Heart size={12} color="#ec4899" fill="#ec4899" />;
       case 'gift': return <Gift size={12} color="#f59e0b" />;
       case 'follow': return <UserPlus size={12} color="#3b82f6" />;
-      case 'mention': return <Star size={12} color="#8b5cf6" />;
       default: return <Star size={12} color={theme.primary} />;
     }
   };
 
-  const filteredNotifications = notifications.filter(notif => {
+  const filteredNotifications = NOTIFICATIONS.filter(notif => {
     if (activeFilter === 'all') return true;
-    if (activeFilter === 'mentions') return notif.type === 'wish' || notif.type === 'follow' || notif.type === 'mention';
+    if (activeFilter === 'mentions') return notif.type === 'wish' || notif.type === 'follow';
     if (activeFilter === 'gifts') return notif.type === 'gift';
     return true;
   });
-
-  const handlePressNotification = (id: string, isRead: boolean) => {
-    if (!isRead) {
-      markAsRead(id);
-    }
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -74,43 +114,38 @@ export default function NotificationScreen({ onBack }: { onBack: () => void }) {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: index * 100 }}
+              style={[
+                styles.notifCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+                !notif.isRead && [styles.notifCardUnread, { borderColor: theme.primary, shadowColor: theme.primary }]
+              ]}
             >
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => handlePressNotification(notif.id, notif.isRead)}
-                style={[
-                  styles.notifCard,
-                  { backgroundColor: theme.card, borderColor: theme.border },
-                  !notif.isRead && [styles.notifCardUnread, { borderColor: theme.primary, shadowColor: theme.primary }]
-                ]}
-              >
-                <View style={styles.notifLayout}>
-                  <View style={styles.avatarContainer}>
-                    {notif.avatar ? (
-                      <Image source={{ uri: notif.avatar }} style={[styles.avatar, { borderColor: theme.card }]} />
-                    ) : (
-                      <View style={[styles.avatarFallback, { backgroundColor: theme.itemBg, borderColor: theme.card }]}>
-                        <Bell size={20} color={theme.primary} />
-                      </View>
-                    )}
-                    <View style={[styles.iconBadge, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                      {getIcon(notif.type)}
+              <View style={styles.notifLayout}>
+                <View style={styles.avatarContainer}>
+                  {notif.avatar ? (
+                    <Image source={{ uri: notif.avatar }} style={[styles.avatar, { borderColor: theme.card }]} />
+                  ) : (
+                    <View style={[styles.avatarFallback, { backgroundColor: theme.itemBg, borderColor: theme.card }]}>
+                      <Bell size={20} color={theme.primary} />
                     </View>
-                  </View>
-
-                  <View style={styles.notifInfo}>
-                    <Text style={[styles.notifMessage, { color: theme.text }]}>
-                      <Text style={[styles.userName, { color: theme.text }]}>{notif.user}</Text>{" "}
-                      <Text style={[styles.messageBody, { color: theme.subText }]}>{notif.message}</Text>
-                    </Text>
-                    <Text style={[styles.notifTime, { color: theme.subText }]}>{notif.time}</Text>
-                  </View>
-
-                  {!notif.isRead && (
-                    <View style={[styles.unreadDot, { backgroundColor: theme.primary }]} />
                   )}
+                  <View style={[styles.iconBadge, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                    {getIcon(notif.type)}
+                  </View>
                 </View>
-              </TouchableOpacity>
+
+                <View style={styles.notifInfo}>
+                  <Text style={[styles.notifMessage, { color: theme.text }]}>
+                    <Text style={[styles.userName, { color: theme.text }]}>{notif.user}</Text>{" "}
+                    <Text style={[styles.messageBody, { color: theme.subText }]}>{notif.message}</Text>
+                  </Text>
+                  <Text style={[styles.notifTime, { color: theme.subText }]}>{notif.time}</Text>
+                </View>
+
+                {!notif.isRead && (
+                  <View style={[styles.unreadDot, { backgroundColor: theme.primary }]} />
+                )}
+              </View>
             </MotiView>
           ))}
         </AnimatePresence>

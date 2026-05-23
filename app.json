@@ -12,7 +12,10 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.birthdayapp.remix"
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
     },
     "web": {
       "bundler": "metro"

@@ -1,6 +1,6 @@
 {
-  "name": "BirthDayApp SDK 54",
-  "description": "A comprehensive birthday celebration app updated for Expo SDK 54, featuring group gifting, virtual celebrations, interactive wallets, and a social feed.",
+  "name": "Remix: BirthDayApp",
+  "description": "A comprehensive birthday celebration app with group gifting, virtual celebrations, interactive wallets, reels, and a social feed for all your special occasions.",
   "requestFramePermissions": [
     "camera",
     "microphone"

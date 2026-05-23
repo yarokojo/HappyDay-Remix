@@ -1,16 +1,15 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Image as RNImage, Platform, Alert, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Image as RNImage, Platform, Alert } from "react-native";
 import { Camera, Image, Video, MapPin, AtSign, X, ArrowLeft } from "lucide-react-native";
 import * as ImagePicker from 'expo-image-picker';
 import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 import { useTheme } from "../context/ThemeContext";
-import { useActivity } from "../context/ActivityContext";
-import { useAuth } from "../context/AuthContext";
 
 type CelebrationType = 'birthday' | 'anniversary' | 'party' | 'general';
 
 interface PostScreenProps {
   initialMode?: 'post' | 'video';
+  userProfileImage: string;
   onPost: (
     content: string, 
     image?: string, 
@@ -19,16 +18,12 @@ interface PostScreenProps {
     celebrationType?: CelebrationType,
     celebrantName?: string,
     feeling?: string
-  ) => Promise<void>;
+  ) => void;
   onBack: () => void;
 }
 
-export default function PostScreen({ initialMode = 'post', onPost, onBack }: PostScreenProps) {
+export default function PostScreen({ initialMode = 'post', userProfileImage, onPost, onBack }: PostScreenProps) {
   const { theme, darkMode } = useTheme();
-  const { user } = useAuth();
-  const { addNotification } = useActivity();
-  
-  const userProfileImage = user?.photoURL || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop";
   const [content, setContent] = useState("");
   const [location, setLocation] = useState("");
   const [celebrationType, setCelebrationType] = useState<CelebrationType>('general');
@@ -38,47 +33,16 @@ export default function PostScreen({ initialMode = 'post', onPost, onBack }: Pos
   const [selectedImage, setSelectedImage] = useState<string | undefined>();
   const [selectedVideo, setSelectedVideo] = useState<string | undefined>();
 
-  const [isPosting, setIsPosting] = useState(false);
-
   React.useEffect(() => {
     if (initialMode === 'video' && !selectedVideo) {
       pickVideo();
     }
   }, [initialMode]);
 
-  const handleShare = async () => {
-    console.log("handleShare started", { contentSize: content.length, hasImage: !!selectedImage, hasVideo: !!selectedVideo });
-    if (!content.trim() && !selectedImage && !selectedVideo) {
-      console.log("handleShare aborted: no content");
-      return;
-    }
-    
-    setIsPosting(true);
-    try {
-      if (Platform.OS !== 'web') {
-        // Haptics removed
-      }
-      
-      if (celebrationType === 'birthday' || celebrationType === 'anniversary') {
-        console.log("Adding celebration notification");
-        await addNotification({
-          type: 'wish',
-          user: 'You',
-          avatar: userProfileImage,
-          message: `sent a ${celebrationType} wish to ${celebrantName || 'them'}! 🎂`
-        });
-      }
-
-      console.log("Calling onPost...");
-      await onPost(content, selectedImage, selectedVideo, location, celebrationType, celebrantName, feeling);
-      console.log("onPost successful, closing PostScreen");
-      onBack();
-    } catch (error) {
-      console.error("Post creation error in PostScreen:", error);
-      Alert.alert("Error", "Could not share your celebration. Please try again.");
-    } finally {
-      setIsPosting(false);
-    }
+  const handleShare = () => {
+    if (!content.trim() && !selectedImage && !selectedVideo) return;
+    onPost(content, selectedImage, selectedVideo, location, celebrationType, celebrantName, feeling);
+    onBack();
   };
 
   const pickImage = async () => {
@@ -159,18 +123,14 @@ export default function PostScreen({ initialMode = 'post', onPost, onBack }: Pos
         </View>
         <TouchableOpacity 
           onPress={handleShare}
-          disabled={shareDisabled || isPosting}
+          disabled={shareDisabled}
           style={[
             styles.shareBtn, 
             { backgroundColor: theme.primary },
-            (shareDisabled || isPosting) && { backgroundColor: theme.itemBg }
+            shareDisabled && { backgroundColor: theme.itemBg }
           ]}
         >
-          {isPosting ? (
-            <ActivityIndicator size="small" color={theme.subText} />
-          ) : (
-            <Text style={[styles.shareBtnText, { color: shareDisabled ? theme.subText : '#fff' }]}>Share</Text>
-          )}
+          <Text style={[styles.shareBtnText, { color: shareDisabled ? theme.subText : '#fff' }]}>Share</Text>
         </TouchableOpacity>
       </View>
 
@@ -179,7 +139,7 @@ export default function PostScreen({ initialMode = 'post', onPost, onBack }: Pos
           <View style={[styles.userSection, { borderBottomColor: theme.bg }]}>
             <RNImage source={{ uri: userProfileImage }} style={[styles.userAvatar, { backgroundColor: theme.itemBg }]} />
             <View>
-              <Text style={[styles.userName, { color: theme.text }]}>{user?.displayName || "Alex Johnson"}</Text>
+              <Text style={[styles.userName, { color: theme.text }]}>Alex Johnson</Text>
               <View style={styles.typeSelector}>
                 {['general', 'birthday', 'anniversary', 'party'].map((type) => (
                   <TouchableOpacity 
@@ -357,9 +317,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     gap: 16,
-    maxWidth: 700,
-    alignSelf: 'center',
-    width: '100%',
   },
   card: {
     backgroundColor: '#fff',
