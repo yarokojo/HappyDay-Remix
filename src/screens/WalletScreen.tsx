@@ -32,12 +32,15 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
 
   const handleWithdraw = () => {
     const amount = parseFloat(withdrawAmount);
-    if (!amount || amount > currentBalance) return;
+    const fee = amount * 0.01;
+    const totalDeduction = amount + fee;
+    
+    if (!amount || totalDeduction > currentBalance) return;
     
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      setCurrentBalance(prev => prev - amount);
+      setCurrentBalance(prev => prev - totalDeduction);
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
@@ -228,6 +231,23 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
                 <ChevronRight size={20} color={theme.subText} />
               </View>
 
+              {isWithdrawing && withdrawAmount && !isNaN(parseFloat(withdrawAmount)) && (
+                <View style={[styles.feeBreakdown, { borderColor: theme.border }]}>
+                  <View style={styles.feeRow}>
+                    <Text style={[styles.feeLabel, { color: theme.subText }]}>Withdraw Amount</Text>
+                    <Text style={[styles.feeValue, { color: theme.text }]}>₵ {parseFloat(withdrawAmount).toLocaleString()}</Text>
+                  </View>
+                  <View style={styles.feeRow}>
+                    <Text style={[styles.feeLabel, { color: theme.subText }]}>Maintenance Fee (1%)</Text>
+                    <Text style={[styles.feeValue, { color: darkMode ? '#f87171' : '#dc2626' }]}>+ ₵ {(parseFloat(withdrawAmount) * 0.01).toFixed(2)}</Text>
+                  </View>
+                  <View style={[styles.feeRow, styles.totalRow, { borderTopColor: theme.border }]}>
+                    <Text style={[styles.totalLabel, { color: theme.text }]}>Total Deduction</Text>
+                    <Text style={[styles.totalValue, { color: theme.primary }]}>₵ {(parseFloat(withdrawAmount) * 1.01).toFixed(2)}</Text>
+                  </View>
+                </View>
+              )}
+
               {isWithdrawing && (
                 <View style={[styles.infoBox, { backgroundColor: darkMode ? theme.itemBg : theme.secondary + '10' }]}>
                   <Text style={[styles.infoText, { color: darkMode ? theme.secondary : '#3b82f6' }]}>
@@ -240,9 +260,9 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
                 style={[
                   styles.mainActionBtn, 
                   { backgroundColor: theme.primary, shadowColor: theme.primary },
-                  (loading || (!isWithdrawing ? !topUpAmount : (!withdrawAmount || parseFloat(withdrawAmount) > currentBalance))) && { backgroundColor: theme.itemBg, shadowOpacity: 0 }
+                  (loading || (!isWithdrawing ? !topUpAmount : (!withdrawAmount || (parseFloat(withdrawAmount) * 1.01) > currentBalance))) && { backgroundColor: theme.itemBg, shadowOpacity: 0 }
                 ]}
-                disabled={loading || (!isWithdrawing ? !topUpAmount : (!withdrawAmount || parseFloat(withdrawAmount) > currentBalance))}
+                disabled={loading || (!isWithdrawing ? !topUpAmount : (!withdrawAmount || (parseFloat(withdrawAmount) * 1.01) > currentBalance))}
                 onPress={isWithdrawing ? handleWithdraw : handleTopUp}
               >
                 {loading ? (
@@ -625,6 +645,41 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#3b82f6',
     lineHeight: 15,
+  },
+  feeBreakdown: {
+    marginTop: 24,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+  },
+  feeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  feeLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  feeValue: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+  },
+  totalLabel: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: '900',
   },
   mainActionBtn: {
     height: 56,
