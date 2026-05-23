@@ -29,7 +29,8 @@ import PostDetailScreen from "./src/screens/PostDetailScreen";
 import WebViewScreen from "./src/screens/WebViewScreen";
 import PrivacyPolicyScreen from "./src/screens/PrivacyPolicyScreen";
 import TermsAndConditionsScreen from "./src/screens/TermsAndConditionsScreen";
-import { Post, Story, ReelItem, Transaction, GroupGift } from "./src/types";
+import AuthScreen from "./src/screens/AuthScreen";
+import { Post, Story, ReelItem, Transaction, GroupGift, ActivityItem } from "./src/types";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 
 interface Notification {
@@ -83,6 +84,7 @@ function MainApp() {
   const isTablet = width > 768 && width <= 1024;
   
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [view, setView] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -173,6 +175,14 @@ function MainApp() {
     securityScore: 85,
     loginAlerts: true
   });
+  const [activities, setActivities] = useState<ActivityItem[]>([
+    { id: "1", text: "Sent a Diamond Ring to Julia", time: "2 hours ago", type: "gift", iconName: "Package", color: "#f59e0b", bg: "#fef3c7" },
+    { id: "2", text: "Updated current wallet balance by ₵100", time: "3 hours ago", type: "wallet", iconName: "Globe", color: "#10b981", bg: "#ecfdf5" },
+    { id: "3", text: "Shared a new birthday reel: 'Dance Off'", time: "4 hours ago", type: "social", iconName: "Grid", color: "#8b5cf6", bg: "#f5f3ff" },
+    { id: "4", text: "Started following Michael Scott", time: "5 hours ago", type: "social", iconName: "Users", color: "#6366f1", bg: "#eef2ff" },
+    { id: "5", text: "Received a Gourmet Cake from Sarah", time: "Yesterday", type: "gift", iconName: "Heart", color: "#ec4899", bg: "#fdf2f8" },
+    { id: "6", text: "Contributed ₵20 to Sam's Group Gift", time: "3 days ago", type: "gift", iconName: "Package", color: "#d97706", bg: "#fffbeb" },
+  ]);
   const [reels, setReels] = useState<ReelItem[]>([
     {
       id: "1",
@@ -317,6 +327,7 @@ function MainApp() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        const storedAuth = await AsyncStorage.getItem("isAuthenticated");
         const storedPosts = await AsyncStorage.getItem("posts");
         const storedStories = await AsyncStorage.getItem("stories");
         const storedReels = await AsyncStorage.getItem("reels");
@@ -328,7 +339,9 @@ function MainApp() {
         const storedGroupGifts = await AsyncStorage.getItem("groupGifts");
         const storedUserProfile = await AsyncStorage.getItem("userProfile");
         const storedAccountData = await AsyncStorage.getItem("accountData");
+        const storedActivities = await AsyncStorage.getItem("activities");
 
+        if (storedAuth) setIsAuthenticated(JSON.parse(storedAuth));
         if (storedPosts) setPosts(JSON.parse(storedPosts));
         if (storedStories) setStories(JSON.parse(storedStories));
         if (storedReels) setReels(JSON.parse(storedReels));
@@ -340,6 +353,7 @@ function MainApp() {
         if (storedGroupGifts) setGroupGifts(JSON.parse(storedGroupGifts));
         if (storedUserProfile) setUserProfile(JSON.parse(storedUserProfile));
         if (storedAccountData) setAccountData(JSON.parse(storedAccountData));
+        if (storedActivities) setActivities(JSON.parse(storedActivities));
       } catch (error) {
         console.error("Failed to load activity from storage:", error);
       } finally {
@@ -355,6 +369,7 @@ function MainApp() {
     if (!isLoaded) return;
     const saveData = async () => {
       try {
+        await AsyncStorage.setItem("isAuthenticated", JSON.stringify(isAuthenticated));
         await AsyncStorage.setItem("posts", JSON.stringify(posts));
         await AsyncStorage.setItem("stories", JSON.stringify(stories));
         await AsyncStorage.setItem("reels", JSON.stringify(reels));
@@ -366,13 +381,14 @@ function MainApp() {
         await AsyncStorage.setItem("groupGifts", JSON.stringify(groupGifts));
         await AsyncStorage.setItem("userProfile", JSON.stringify(userProfile));
         await AsyncStorage.setItem("accountData", JSON.stringify(accountData));
+        await AsyncStorage.setItem("activities", JSON.stringify(activities));
       } catch (error) {
         console.error("Failed to save activity to storage:", error);
       }
     };
 
     saveData();
-  }, [posts, stories, reels, seenStoryIds, userProfileImage, currentBalance, transactions, notifications, groupGifts, userProfile, accountData, isLoaded]);
+  }, [isAuthenticated, posts, stories, reels, seenStoryIds, userProfileImage, currentBalance, transactions, notifications, groupGifts, userProfile, accountData, activities, isLoaded]);
 
   const handlePost = (
     content: string, 
@@ -554,6 +570,87 @@ function MainApp() {
     setSeenStoryIds(prev => new Set(prev).add(storyId));
   };
 
+  const handleLogin = (userData: { name: string; email: string; birthday: string }) => {
+    setUserProfile(prev => ({
+      ...prev,
+      name: userData.name,
+      username: `@${userData.name.toLowerCase().replace(/\s+/g, '_')}`,
+      birthday: userData.birthday, // We add birthday to the profile object
+    }));
+    setAccountData(prev => ({
+      ...prev,
+      email: userData.email,
+    }));
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+  };
+
+  const handleWish = (celebrantName: string) => {
+    const newActivity: ActivityItem = {
+      id: Date.now().toString(),
+      text: `Sent a birthday wish to ${celebrantName}`,
+      time: "Just now",
+      type: "social",
+      iconName: "Heart",
+      color: "#ec4899",
+      bg: "#fdf2f8"
+    };
+    setActivities([newActivity, ...activities]);
+    
+    const newNotif: Notification = {
+      id: Date.now().toString(),
+      type: 'wish',
+      user: celebrantName,
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
+      message: `responded to your wish: "Thank you so much! 💖"`,
+      time: "Just now",
+      isRead: false
+    };
+    setNotifications([newNotif, ...notifications]);
+    
+    if (Platform.OS === 'web') {
+      // Use a custom UI instead of alert if possible, but alert is fine for now
+    }
+  };
+
+  const handleGiftPurchase = (giftName: string, price: number, celebrantName: string) => {
+    const newActivity: ActivityItem = {
+      id: Date.now().toString(),
+      text: `Sent ${giftName} to ${celebrantName}`,
+      time: "Just now",
+      type: "gift",
+      iconName: "Package",
+      color: "#f59e0b",
+      bg: "#fef3c7"
+    };
+    setActivities([newActivity, ...activities]);
+    
+    const newTransaction: Transaction = {
+      id: Date.now().toString(),
+      type: "gift_received", // From user's perspective it's a purchase/send, but we track it
+      amount: price,
+      date: "Just now",
+      senderName: celebrantName,
+      status: "completed"
+    };
+    setTransactions([newTransaction, ...transactions]);
+    setCurrentBalance(prev => Math.max(0, prev - price));
+
+    const newNotif: Notification = {
+      id: Date.now().toString(),
+      type: 'gift',
+      user: celebrantName,
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
+      message: `received your ${giftName} and is so happy! 🎁`,
+      time: "Just now",
+      isRead: false
+    };
+    setNotifications([newNotif, ...notifications]);
+  };
+
   const navigateTo = (screen: string, id?: string, mode?: 'post' | 'video', url?: string, title?: string) => {
     // If the destination is one of the main tabs, switch the tab instead of showing a view
     const mainTabs = ["home", "calendar", "video", "gift_shop", "profile"];
@@ -602,7 +699,14 @@ function MainApp() {
     }
     if (view === "privacy_policy") return <PrivacyPolicyScreen onBack={() => setView(null)} />;
     if (view === "terms") return <TermsAndConditionsScreen onBack={() => setView(null)} />;
-    if (view === "gift_shop") return <GiftShopScreen onBack={() => setView(null)} onNavigate={navigateTo} searchQuery={searchQuery} />;
+    if (view === "gift_shop") return (
+      <GiftShopScreen 
+        onBack={() => setView(null)} 
+        onNavigate={navigateTo} 
+        searchQuery={searchQuery} 
+        onBuyGift={handleGiftPurchase}
+      />
+    );
     if (view === "wallet") return (
       <WalletScreen 
         balance={currentBalance} 
@@ -612,7 +716,13 @@ function MainApp() {
         onBack={() => setView(null)} 
       />
     );
-    if (view === "notifications") return <NotificationScreen notifications={notifications} onBack={() => setView(null)} />;
+    if (view === "notifications") return (
+      <NotificationScreen 
+        notifications={notifications} 
+        setNotifications={setNotifications}
+        onBack={() => setView(null)} 
+      />
+    );
     if (view === "group_gifts") return (
       <GroupGiftScreen 
         pools={groupGifts} 
@@ -639,7 +749,8 @@ function MainApp() {
       onDeleteComment: handleDeleteComment,
       onToggleFollow: handleToggleFollow,
       onRepost: handleRepost,
-      onToggleBookmark: handleToggleBookmark
+      onToggleBookmark: handleToggleBookmark,
+      onWish: handleWish
     };
 
     const filteredPosts = posts.filter(post => 
@@ -647,6 +758,10 @@ function MainApp() {
       post.authorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.authorHandle.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    if (!isAuthenticated) {
+      return <AuthScreen onLogin={handleLogin} />;
+    }
 
     if (view === "post_detail" && selectedPostId) {
       const post = posts.find(p => p.id === selectedPostId);
@@ -661,7 +776,14 @@ function MainApp() {
       case "calendar":
         return <CalendarScreen searchQuery={searchQuery} />;
       case "gift_shop":
-        return <GiftShopScreen onBack={() => handleTabChange("home")} onNavigate={navigateTo} searchQuery={searchQuery} />;
+        return (
+          <GiftShopScreen 
+            onBack={() => handleTabChange("home")} 
+            onNavigate={navigateTo} 
+            searchQuery={searchQuery} 
+            onBuyGift={handleGiftPurchase}
+          />
+        );
       case "video":
         return <VideoScreen reels={reels} userProfileImage={userProfileImage} onBack={() => setActiveTab("home")} onNavigate={navigateTo} />;
       case "profile":
@@ -675,6 +797,9 @@ function MainApp() {
             setProfile={setUserProfile}
             accountData={accountData}
             setAccountData={setAccountData}
+            activities={activities}
+            setActivities={setActivities}
+            onLogout={handleLogout}
           />
         );
       default:

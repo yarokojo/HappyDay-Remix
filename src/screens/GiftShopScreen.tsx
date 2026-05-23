@@ -17,17 +17,15 @@ const GIFTS: GiftType[] = [
 export default function GiftShopScreen({ 
   onBack, 
   onNavigate, 
+  onBuyGift,
   searchQuery = "" 
 }: { 
   onBack: () => void, 
   onNavigate?: (screen: string, id?: string, mode?: 'post' | 'video', url?: string, title?: string) => void,
+  onBuyGift?: (giftName: string, price: number, celebrantName: string) => void,
   searchQuery?: string
 }) {
   const { theme, darkMode } = useTheme();
-  const { width } = useWindowDimensions();
-  const numColumns = width > 1024 ? 4 : (width > 768 ? 3 : 2);
-  const cardWidth = (100 / numColumns) - 2;
-
   const [selectedGift, setSelectedGift] = useState<GiftType | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -55,12 +53,15 @@ export default function GiftShopScreen({
   });
 
   const handlePay = () => {
-    if (!phoneNumber) return;
+    if (!phoneNumber || !selectedGift) return;
     setIsPaying(true);
     // Simulate payment process
     setTimeout(() => {
       setIsPaying(false);
       setShowSuccess(true);
+      if (onBuyGift) {
+        onBuyGift(selectedGift.name, selectedGift.price, "Julia Mason"); // Hardcoded celebrant for now
+      }
       setTimeout(() => {
         setShowSuccess(false);
         setSelectedGift(null);
@@ -152,31 +153,50 @@ export default function GiftShopScreen({
         </TouchableOpacity>
 
         {/* Gifts Grid */}
-        <View style={styles.giftsGrid}>
-          {filteredGifts.map((gift) => (
-            <TouchableOpacity
+        <View style={styles.giftsList}>
+          {filteredGifts.map((gift, index) => (
+            <MotiView
               key={gift.id}
-              activeOpacity={0.8}
-              onPress={() => setSelectedGift(gift)}
-              style={[styles.giftCard, { width: `${cardWidth}%`, backgroundColor: theme.card, borderColor: theme.border }]}
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ delay: index * 100 }}
             >
-              <View style={[styles.giftImageContainer, { backgroundColor: theme.itemBg }]}>
-                <Image source={{ uri: gift.imageUrl }} style={styles.giftImage} />
-                <View style={styles.giftBadge}>
-                  <Gift size={12} color={theme.primary} />
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setSelectedGift(gift)}
+                style={[styles.premiumCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+              >
+                <View style={[styles.premiumImageWrapper, { backgroundColor: theme.itemBg }]}>
+                  <Image source={{ uri: gift.imageUrl }} style={styles.premiumImage} />
+                  {gift.price > 80 && (
+                    <View style={styles.premiumBadge}>
+                      <Text style={styles.premiumBadgeText}>Elite</Text>
+                    </View>
+                  )}
                 </View>
-              </View>
-              <View style={styles.giftInfo}>
-                <Text style={[styles.giftCategory, { color: theme.primary }]}>{gift.category}</Text>
-                <Text style={[styles.giftName, { color: theme.text }]} numberOfLines={1}>{gift.name}</Text>
-                <View style={styles.giftFooter}>
-                  <Text style={[styles.giftPrice, { color: theme.primary }]}>₵{gift.price.toLocaleString()}</Text>
-                  <View style={[styles.addBtn, { backgroundColor: theme.primary }]}>
-                    <Plus size={14} color="#fff" />
+                
+                <View style={styles.premiumDetails}>
+                  <View>
+                    <Text style={[styles.premiumCategory, { color: theme.subText }]}>{gift.category}</Text>
+                    <Text style={[styles.premiumName, { color: theme.text }]}>{gift.name}</Text>
+                  </View>
+                  
+                  <View style={styles.premiumFooter}>
+                    <View style={styles.priceTag}>
+                      <Text style={styles.currency}>GHS</Text>
+                      <Text style={[styles.priceValue, { color: theme.primary }]}>{gift.price.toLocaleString()}</Text>
+                    </View>
+                    
+                    <TouchableOpacity 
+                      onPress={() => setSelectedGift(gift)}
+                      style={[styles.buyAction, { backgroundColor: theme.primary }]}
+                    >
+                      <Plus size={18} color="#fff" />
+                    </TouchableOpacity>
                   </View>
                 </View>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </MotiView>
           ))}
         </View>
       </ScrollView>
@@ -320,17 +340,18 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    height: 56,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    height: 60,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     borderWidth: 1,
     borderColor: '#f1f5f9',
-    shadowColor: '#000',
-    shadowOpacity: 0.02,
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#4f46e5',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
   },
   searchInput: {
     flex: 1,
@@ -448,76 +469,95 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  giftsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  giftsList: {
     gap: 16,
     marginTop: 24,
   },
-  giftCard: {
-    backgroundColor: '#fff',
+  premiumCard: {
+    flexDirection: 'row',
     borderRadius: 32,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
     shadowColor: '#000',
-    shadowOpacity: 0.02,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 2,
   },
-  giftImageContainer: {
-    aspectRatio: 4/5,
+  premiumImageWrapper: {
+    width: 120,
+    height: 120,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#f8fafc',
     position: 'relative',
   },
-  giftImage: {
+  premiumImage: {
     width: '100%',
     height: '100%',
   },
-  giftBadge: {
+  premiumBadge: {
     position: 'absolute',
     top: 8,
-    right: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    padding: 6,
-    borderRadius: 10,
+    left: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  giftInfo: {
-    marginTop: 12,
-    paddingHorizontal: 4,
-  },
-  giftCategory: {
+  premiumBadgeText: {
+    color: '#fff',
     fontSize: 8,
     fontWeight: '900',
-    color: '#818cf8',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+  },
+  premiumDetails: {
+    flex: 1,
+    paddingLeft: 16,
+    paddingRight: 4,
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  premiumCategory: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: 4,
   },
-  giftName: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#1e293b',
+  premiumName: {
+    fontSize: 17,
+    fontWeight: '900',
+    letterSpacing: -0.2,
   },
-  giftFooter: {
+  premiumFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 8,
   },
-  giftPrice: {
-    fontSize: 14,
+  priceTag: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 2,
+  },
+  currency: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94a3b8',
+  },
+  priceValue: {
+    fontSize: 22,
     fontWeight: '900',
-    color: '#4f46e5',
   },
-  addBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#4f46e5',
+  buyAction: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 4,
   },
   modalOverlay: {
     flex: 1,

@@ -17,11 +17,24 @@ interface Notification {
 interface NotificationScreenProps {
   onBack: () => void;
   notifications: Notification[];
+  setNotifications: (n: Notification[] | ((prev: Notification[]) => Notification[])) => void;
 }
 
-export default function NotificationScreen({ onBack, notifications }: NotificationScreenProps) {
+export default function NotificationScreen({ onBack, notifications, setNotifications }: NotificationScreenProps) {
   const { theme } = useTheme();
   const [activeFilter, setActiveFilter] = useState('all');
+
+  const markAsRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+  };
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -47,6 +60,14 @@ export default function NotificationScreen({ onBack, notifications }: Notificati
             <ArrowLeft size={24} color={theme.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.text }]}>Activity</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={markAllAsRead} style={styles.actionBtn}>
+              <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '700' }}>Read all</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={clearNotifications} style={styles.actionBtn}>
+              <Text style={{ color: '#ef4444', fontSize: 13, fontWeight: '700' }}>Clear</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         
         <View style={[styles.filterBar, { backgroundColor: theme.itemBg, borderColor: theme.border }]}>
@@ -86,7 +107,7 @@ export default function NotificationScreen({ onBack, notifications }: Notificati
                 !notif.isRead && [styles.notifCardUnread, { borderColor: theme.primary, shadowColor: theme.primary }]
               ]}
             >
-              <View style={styles.notifLayout}>
+              <TouchableOpacity onPress={() => markAsRead(notif.id)} style={styles.notifLayout}>
                 <View style={styles.avatarContainer}>
                   {notif.avatar ? (
                     <Image source={{ uri: notif.avatar }} style={[styles.avatar, { borderColor: theme.card }]} />
@@ -111,7 +132,7 @@ export default function NotificationScreen({ onBack, notifications }: Notificati
                 {!notif.isRead && (
                   <View style={[styles.unreadDot, { backgroundColor: theme.primary }]} />
                 )}
-              </View>
+              </TouchableOpacity>
             </MotiView>
           ))}
         </AnimatePresence>
@@ -157,6 +178,16 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#1e293b',
     letterSpacing: -0.5,
+    flex: 1,
+    marginLeft: 12,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 4,
   },
   filterBar: {
     flexDirection: 'row',

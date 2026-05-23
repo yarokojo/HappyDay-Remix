@@ -15,7 +15,10 @@ export default function ProfileScreen({
   profile,
   setProfile,
   accountData,
-  setAccountData
+  setAccountData,
+  activities,
+  setActivities,
+  onLogout
 }: { 
   onNavigate: (screen: string, id?: string) => void;
   userProfileImage: string;
@@ -25,6 +28,9 @@ export default function ProfileScreen({
   setProfile: (p: any) => void;
   accountData: any;
   setAccountData: (a: any) => void;
+  activities: any[];
+  setActivities: (a: any) => void;
+  onLogout: () => void;
 }) {
   const { darkMode, toggleDarkMode, theme, setPrimaryColor, primaryColor } = useTheme();
   const { width } = useWindowDimensions();
@@ -111,15 +117,6 @@ export default function ProfileScreen({
     { id: "activity", label: "Activity", Icon: Activity },
     { id: "wishes", label: "Wishes", Icon: Heart },
     { id: "gifts", label: "Gifts", Icon: Package },
-  ];
-
-  const activities = [
-    { id: "1", text: "Sent a Diamond Ring to Julia", time: "2 hours ago", type: "gift", icon: Package, color: "#f59e0b", bg: "#fef3c7" },
-    { id: "2", text: "Updated current wallet balance by ₵100", time: "3 hours ago", type: "wallet", icon: Globe, color: "#10b981", bg: "#ecfdf5" },
-    { id: "3", text: "Shared a new birthday reel: 'Dance Off'", time: "4 hours ago", type: "social", icon: Grid, color: "#8b5cf6", bg: "#f5f3ff" },
-    { id: "4", text: "Started following Michael Scott", time: "5 hours ago", type: "social", icon: Users, color: "#6366f1", bg: "#eef2ff" },
-    { id: "5", text: "Received a Gourmet Cake from Sarah", time: "Yesterday", type: "gift", icon: Heart, color: "#ec4899", bg: "#fdf2f8" },
-    { id: "6", text: "Contributed ₵20 to Sam's Group Gift", time: "3 days ago", type: "gift", icon: Package, color: "#d97706", bg: "#fffbeb" },
   ];
 
   const effectiveSearch = internalSearch || searchQuery;
@@ -665,7 +662,7 @@ export default function ProfileScreen({
               ))}
             </View>
 
-            <TouchableOpacity style={styles.logoutBtn}>
+            <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
               <Text style={styles.logoutBtnText}>Log Out</Text>
             </TouchableOpacity>
 
@@ -752,6 +749,12 @@ export default function ProfileScreen({
                     <Globe size={12} color="#f472b6" />
                     <Text style={[styles.attrText, { color: theme.subText }]}>{profile.website}</Text>
                   </View>
+                  {profile.birthday && (
+                    <View style={styles.attrItem}>
+                      <Calendar size={12} color="#10b981" />
+                      <Text style={[styles.attrText, { color: theme.subText }]}>{profile.birthday}</Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.profileActions}>
@@ -862,27 +865,93 @@ export default function ProfileScreen({
                   </TouchableOpacity>
                 ))}
               </View>
-              {filteredActivities.map(act => (
-                <View key={act.id} style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-                  <View style={[styles.activityIcon, { backgroundColor: act.bg }]}>
-                    <act.icon size={18} color={act.color} />
-                  </View>
-                  <View style={styles.activityInfo}>
-                    <Text style={[styles.activityText, { color: theme.text }]}>{act.text}</Text>
-                    <View style={styles.activityMeta}>
-                      <Text style={[styles.activityTime, { color: theme.subText }]}>{act.time}</Text>
-                      <View style={[styles.metaDot, { backgroundColor: theme.border }]} />
-                      <Text style={[styles.activityType, { color: act.color }]}>{act.type.toUpperCase()}</Text>
-                    </View>
-                  </View>
+              {filteredActivities.length === 0 ? (
+                <View style={styles.emptyTab}>
+                  <Text style={[styles.emptyTabText, { color: theme.subText }]}>No matching activities found</Text>
                 </View>
-              ))}
+              ) : (
+                filteredActivities.map(act => {
+                  const IconComponent = () => {
+                    switch (act.iconName) {
+                      case 'Package': return <Package size={18} color={act.color} />;
+                      case 'Globe': return <Globe size={18} color={act.color} />;
+                      case 'Grid': return <Grid size={18} color={act.color} />;
+                      case 'Users': return <Users size={18} color={act.color} />;
+                      case 'Heart': return <Heart size={18} color={act.color} />;
+                      default: return <Activity size={18} color={act.color} />;
+                    }
+                  };
+                  return (
+                    <View key={act.id} style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+                      <View style={[styles.activityIcon, { backgroundColor: act.bg }]}>
+                        <IconComponent />
+                      </View>
+                      <View style={styles.activityInfo}>
+                        <Text style={[styles.activityText, { color: theme.text }]}>{act.text}</Text>
+                        <View style={styles.activityMeta}>
+                          <Text style={[styles.activityTime, { color: theme.subText }]}>{act.time}</Text>
+                          <View style={[styles.metaDot, { backgroundColor: theme.border }]} />
+                          <Text style={[styles.activityType, { color: act.color }]}>{act.type.toUpperCase()}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
             </View>
           )}
 
-          {activeTab !== "posts" && activeTab !== "activity" && (
+          {activeTab === "wishes" && (
+            <View style={styles.activityList}>
+              <Text style={[styles.tabContentTitle, { color: theme.text }]}>Birthday Wishes Sent</Text>
+              {activities.filter(a => a.text.toLowerCase().includes('wish')).length === 0 ? (
+                <View style={styles.emptyTab}>
+                  <Heart size={40} color={theme.border} />
+                  <Text style={[styles.emptyTabText, { color: theme.subText }]}>No wishes sent yet</Text>
+                </View>
+              ) : (
+                activities.filter(a => a.text.toLowerCase().includes('wish')).map(act => (
+                  <View key={act.id} style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+                    <View style={[styles.activityIcon, { backgroundColor: act.bg }]}>
+                      <Heart size={18} color={act.color} />
+                    </View>
+                    <View style={styles.activityInfo}>
+                      <Text style={[styles.activityText, { color: theme.text }]}>{act.text}</Text>
+                      <Text style={[styles.activityTime, { color: theme.subText }]}>{act.time}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+
+          {activeTab === "gifts" && (
+            <View style={styles.activityList}>
+              <Text style={[styles.tabContentTitle, { color: theme.text }]}>Sent & Received Gifts</Text>
+              {activities.filter(a => a.type === 'gift').length === 0 ? (
+                <View style={styles.emptyTab}>
+                  <Package size={40} color={theme.border} />
+                  <Text style={[styles.emptyTabText, { color: theme.subText }]}>No gifts recorded yet</Text>
+                </View>
+              ) : (
+                activities.filter(a => a.type === 'gift').map(act => (
+                  <View key={act.id} style={[styles.activityCard, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+                    <View style={[styles.activityIcon, { backgroundColor: act.bg }]}>
+                      <Package size={18} color={act.color} />
+                    </View>
+                    <View style={styles.activityInfo}>
+                      <Text style={[styles.activityText, { color: theme.text }]}>{act.text}</Text>
+                      <Text style={[styles.activityTime, { color: theme.subText }]}>{act.time}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+
+          {activeTab !== "posts" && activeTab !== "activity" && activeTab !== "wishes" && activeTab !== "gifts" && (
             <View style={styles.emptyTab}>
-              <Text style={styles.emptyTabText}>No {activeTab} yet</Text>
+              <Text style={[styles.emptyTabText, { color: theme.subText }]}>No {activeTab} yet</Text>
             </View>
           )}
         </View>
@@ -1244,6 +1313,14 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
+  },
+  tabContentTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 16,
+    marginLeft: 4,
   },
   metaDot: {
     width: 3,

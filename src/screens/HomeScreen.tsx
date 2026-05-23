@@ -40,6 +40,7 @@ interface HomeScreenProps {
   onToggleFollow: (authorHandle: string) => void;
   onRepost: (postId: string) => void;
   onToggleBookmark: (postId: string) => void;
+  onWish: (celebrantName: string) => void;
   userProfileImage: string;
 }
 
@@ -59,6 +60,7 @@ export default function HomeScreen({
   onToggleFollow,
   onRepost,
   onToggleBookmark,
+  onWish,
   userProfileImage
 }: HomeScreenProps) {
   const { theme, darkMode } = useTheme();
@@ -183,7 +185,7 @@ export default function HomeScreen({
                           key={celebrant.id} 
                           celebrant={celebrant} 
                           onGiftClick={() => onNavigate('gift_shop')} 
-                          onWishClick={() => onNavigate('post')}
+                          onWishClick={() => onWish(celebrant.name)}
                         />
                       ))}
                     </ScrollView>

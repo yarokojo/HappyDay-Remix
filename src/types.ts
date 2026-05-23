@@ -92,3 +92,13 @@ export interface Transaction {
   senderName?: string;
   status: 'completed' | 'pending';
 }
+
+export interface ActivityItem {
+  id: string;
+  text: string;
+  time: string;
+  type: 'gift' | 'wallet' | 'social' | 'system';
+  iconName: string;
+  color: string;
+  bg: string;
+}
