@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ThemeType = {
   darkMode: boolean;
@@ -30,6 +31,41 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const systemColorScheme = useColorScheme();
   const [darkMode, setDarkMode] = useState(systemColorScheme === 'dark');
   const [primaryColor, setPrimaryColor] = useState("#6366f1");
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const storedDarkMode = await AsyncStorage.getItem('darkMode');
+        const storedPrimaryColor = await AsyncStorage.getItem('primaryColor');
+        
+        if (storedDarkMode !== null) {
+          setDarkMode(JSON.parse(storedDarkMode));
+        }
+        if (storedPrimaryColor !== null) {
+          setPrimaryColor(storedPrimaryColor);
+        }
+      } catch (error) {
+        console.error('Failed to load theme:', error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    loadTheme();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const saveTheme = async () => {
+      try {
+        await AsyncStorage.setItem('darkMode', JSON.stringify(darkMode));
+        await AsyncStorage.setItem('primaryColor', primaryColor);
+      } catch (error) {
+        console.error('Failed to save theme:', error);
+      }
+    };
+    saveTheme();
+  }, [darkMode, primaryColor, isLoaded]);
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 

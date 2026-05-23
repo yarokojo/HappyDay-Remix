@@ -11,12 +11,20 @@ export default function ProfileScreen({
   onNavigate, 
   userProfileImage, 
   onUpdateProfileImage,
-  searchQuery = ""
+  searchQuery = "",
+  profile,
+  setProfile,
+  accountData,
+  setAccountData
 }: { 
   onNavigate: (screen: string, id?: string) => void;
   userProfileImage: string;
   onUpdateProfileImage: (image: string) => void;
   searchQuery?: string;
+  profile: any;
+  setProfile: (p: any) => void;
+  accountData: any;
+  setAccountData: (a: any) => void;
 }) {
   const { darkMode, toggleDarkMode, theme, setPrimaryColor, primaryColor } = useTheme();
   const { width } = useWindowDimensions();
@@ -29,15 +37,6 @@ export default function ProfileScreen({
   const [isEditing, setIsEditing] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsView, setSettingsView] = useState("main"); // "main", "personal", "security", "billing", "linked", "blocked", "privacy", "terms"
-
-  // Stats / Account Data
-  const [accountData, setAccountData] = useState({
-    email: "alex@example.com",
-    phone: "+1 234 567 890",
-    twoFactor: true,
-    securityScore: 85,
-    loginAlerts: true
-  });
 
   const [passwordForm, setPasswordForm] = useState({
     current: "",
@@ -83,15 +82,6 @@ export default function ProfileScreen({
       toggleDarkMode();
     }
   };
-
-  const [profile, setProfile] = useState({
-    name: "Alex Johnson",
-    username: "@alex_bday_guru",
-    bio: "Turning celebrations into legendary memories. 🎂 Birthday Guru & Party Architect.",
-    location: "Manhattan, NY",
-    website: "alexcelebrates.com",
-  });
-
   const pickImage = async () => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();

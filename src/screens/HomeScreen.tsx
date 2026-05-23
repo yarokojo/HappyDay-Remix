@@ -3,7 +3,6 @@ import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Image,
 import { MotiView, AnimatePresence } from "moti";
 import Stories from "../components/Stories";
 import CelebrantCard from "../components/CelebrantCard";
-import GiftShopBanner from "../components/GiftShopBanner";
 import UpcomingPanel from "../components/UpcomingPanel";
 import { Celebrant, Post, Story } from "../types";
 import FeedCard from "../components/FeedCard";
@@ -189,9 +188,7 @@ export default function HomeScreen({
                       ))}
                     </ScrollView>
 
-                    <GiftShopBanner onPress={() => onNavigate('gift_shop')} />
-
-                    {/* Trending */}
+                     {/* Trending */}
                     <View style={styles.trendingContainer}>
                       <Text style={[styles.trendingTitle, { color: theme.subText }]}>Trending Celebs</Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagsScroll}>
@@ -253,8 +250,6 @@ export default function HomeScreen({
                         ))
                       )}
                     </View>
-
-                    {!(isLargeScreen || isTablet) && <UpcomingPanel />}
                   </MotiView>
                 )}
 
@@ -340,7 +335,6 @@ export default function HomeScreen({
                       ))}
                     </View>
 
-                    <GiftShopBanner onPress={() => onNavigate('gift_shop')} />
                   </MotiView>
                 )}
 
@@ -369,10 +363,13 @@ export default function HomeScreen({
                           <Text style={[styles.statLabel, { color: theme.subText }]}>WISHES</Text>
                           <Text style={[styles.statValue, { color: theme.primary }]}>128</Text>
                         </View>
-                        <View style={[styles.statBox, { backgroundColor: theme.itemBg }]}>
+                        <TouchableOpacity 
+                          onPress={() => onNavigate('gift_shop')}
+                          style={[styles.statBox, { backgroundColor: theme.itemBg }]}
+                        >
                           <Text style={[styles.statLabel, { color: theme.subText }]}>GIFTS</Text>
                           <Text style={[styles.statValue, { color: theme.primary }]}>12</Text>
-                        </View>
+                        </TouchableOpacity>
                       </View>
 
                       <TouchableOpacity 

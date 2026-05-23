@@ -5,32 +5,14 @@ import { MotiView, AnimatePresence } from "moti";
 import { GroupGift } from "../types";
 import { useTheme } from "../context/ThemeContext";
 
-const MOCK_GROUP_GIFTS: GroupGift[] = [
-  {
-    id: "1",
-    celebrantName: "Julia Mason",
-    giftName: "Premium Velvet Cake",
-    targetAmount: 150,
-    currentAmount: 85,
-    contributorsCount: 4,
-    deadline: "5h left",
-    imageUrl: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=400&fit=crop"
-  },
-  {
-    id: "2",
-    celebrantName: "Kevin Hart",
-    giftName: "Surprise Gift Box",
-    targetAmount: 200,
-    currentAmount: 45,
-    contributorsCount: 2,
-    deadline: "12h left",
-    imageUrl: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&h=400&fit=crop"
-  }
-];
+interface GroupGiftScreenProps {
+  onBack: () => void;
+  pools: GroupGift[];
+  setPools: (pools: GroupGift[] | ((prev: GroupGift[]) => GroupGift[])) => void;
+}
 
-export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
+export default function GroupGiftScreen({ onBack, pools, setPools }: GroupGiftScreenProps) {
   const { theme, darkMode } = useTheme();
-  const [pools, setPools] = useState<GroupGift[]>(MOCK_GROUP_GIFTS);
   const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
   const [contribution, setContribution] = useState("10");
 
@@ -48,10 +30,14 @@ export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
         if (isNowComplete && pool.currentAmount < pool.targetAmount) {
           // Trigger automated alerts and transfer
           setTimeout(() => {
-            Alert.alert(
-              "🎯 Target Reached!", 
-              `Congratulations! The target for ${pool.giftName} has been met.\n\nAutomated actions:\n1. Contributors notified\n2. ₵${newAmount} sent to ${pool.celebrantName}'s wallet`
-            );
+            if (Platform.OS === 'web') {
+              alert(`🎯 Target Reached!\n\nCongratulations! The target for ${pool.giftName} has been met.\n\nAutomated actions:\n1. Contributors notified\n2. ₵${newAmount} sent to ${pool.celebrantName}'s wallet`);
+            } else {
+              Alert.alert(
+                "🎯 Target Reached!", 
+                `Congratulations! The target for ${pool.giftName} has been met.\n\nAutomated actions:\n1. Contributors notified\n2. ₵${newAmount} sent to ${pool.celebrantName}'s wallet`
+              );
+            }
           }, 500);
         }
         
@@ -65,7 +51,11 @@ export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
     });
 
     setPools(updatedPools);
-    Alert.alert("Success", `Contributed ₵${contribution} successfully!`);
+    if (Platform.OS === 'web') {
+      alert(`Success: Contributed ₵${contribution} successfully!`);
+    } else {
+      Alert.alert("Success", `Contributed ₵${contribution} successfully!`);
+    }
     setSelectedGiftId(null);
   };
 

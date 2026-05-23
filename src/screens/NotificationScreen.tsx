@@ -14,46 +14,12 @@ interface Notification {
   isRead: boolean;
 }
 
-const NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    type: "wish",
-    user: "Julia Mason",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
-    message: "sent you a birthday wish! 🎂",
-    time: "2m ago",
-    isRead: false
-  },
-  {
-    id: "2",
-    type: "gift",
-    user: "Kevin Hart",
-    avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop",
-    message: "sent you a Surprise Gift! 🎁",
-    time: "15m ago",
-    isRead: false
-  },
-  {
-    id: "3",
-    type: "follow",
-    user: "Samantha Lee",
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop",
-    message: "started following you.",
-    time: "1h ago",
-    isRead: true
-  },
-  {
-    id: "4",
-    type: "system",
-    user: "BirthDayApp",
-    avatar: "",
-    message: "Your virtual celebration starts in 1 hour! 🎊",
-    time: "3h ago",
-    isRead: true
-  }
-];
+interface NotificationScreenProps {
+  onBack: () => void;
+  notifications: Notification[];
+}
 
-export default function NotificationScreen({ onBack }: { onBack: () => void }) {
+export default function NotificationScreen({ onBack, notifications }: NotificationScreenProps) {
   const { theme } = useTheme();
   const [activeFilter, setActiveFilter] = useState('all');
 
@@ -66,7 +32,7 @@ export default function NotificationScreen({ onBack }: { onBack: () => void }) {
     }
   };
 
-  const filteredNotifications = NOTIFICATIONS.filter(notif => {
+  const filteredNotifications = notifications.filter(notif => {
     if (activeFilter === 'all') return true;
     if (activeFilter === 'mentions') return notif.type === 'wish' || notif.type === 'follow';
     if (activeFilter === 'gifts') return notif.type === 'gift';

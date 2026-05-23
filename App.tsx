@@ -9,8 +9,9 @@
  */
 
 import "react-native-gesture-handler";
-import React, { useState } from "react";
-import { View, StyleSheet, SafeAreaView, Platform, Text, TouchableOpacity, useWindowDimensions, KeyboardAvoidingView } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, SafeAreaView, Platform, Text, TouchableOpacity, useWindowDimensions, KeyboardAvoidingView, ActivityIndicator } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Header from "./src/components/Header";
@@ -28,8 +29,18 @@ import PostDetailScreen from "./src/screens/PostDetailScreen";
 import WebViewScreen from "./src/screens/WebViewScreen";
 import PrivacyPolicyScreen from "./src/screens/PrivacyPolicyScreen";
 import TermsAndConditionsScreen from "./src/screens/TermsAndConditionsScreen";
-import { Post, Story, ReelItem } from "./src/types";
+import { Post, Story, ReelItem, Transaction, GroupGift } from "./src/types";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
+
+interface Notification {
+  id: string;
+  type: 'wish' | 'gift' | 'follow' | 'system';
+  user: string;
+  avatar: string;
+  message: string;
+  time: string;
+  isRead: boolean;
+}
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
@@ -71,6 +82,7 @@ function MainApp() {
   const isLargeScreen = width > 1024;
   const isTablet = width > 768 && width <= 1024;
   
+  const [isLoaded, setIsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [view, setView] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -80,6 +92,87 @@ function MainApp() {
   const [postMode, setPostMode] = useState<'post' | 'video'>('post');
   const [seenStoryIds, setSeenStoryIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentBalance, setCurrentBalance] = useState(325);
+  const [groupGifts, setGroupGifts] = useState<GroupGift[]>([
+    {
+      id: "1",
+      celebrantName: "Julia Mason",
+      giftName: "Premium Velvet Cake",
+      targetAmount: 150,
+      currentAmount: 85,
+      contributorsCount: 4,
+      deadline: "5h left",
+      imageUrl: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=400&fit=crop"
+    },
+    {
+      id: "2",
+      celebrantName: "Kevin Hart",
+      giftName: "Surprise Gift Box",
+      targetAmount: 200,
+      currentAmount: 45,
+      contributorsCount: 2,
+      deadline: "12h left",
+      imageUrl: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&h=400&fit=crop"
+    }
+  ]);
+  const [transactions, setTransactions] = useState<Transaction[]>([
+    { id: "t1", type: "gift_received", amount: 2500, date: "Today, 10:45 AM", senderName: "Julia Mason", status: "completed" },
+    { id: "t2", type: "gift_received", amount: 5000, date: "Yesterday, 08:20 PM", senderName: "Kevin Hart", status: "completed" },
+    { id: "t3", type: "withdrawal", amount: 10000, date: "2 days ago", status: "completed" },
+    { id: "t4", type: "gift_received", amount: 15000, date: "3 days ago", senderName: "Samantha Lee", status: "completed" },
+  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
+      id: "1",
+      type: "wish",
+      user: "Julia Mason",
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
+      message: "sent you a birthday wish! 🎂",
+      time: "2m ago",
+      isRead: false
+    },
+    {
+      id: "2",
+      type: "gift",
+      user: "Kevin Hart",
+      avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop",
+      message: "sent you a Surprise Gift! 🎁",
+      time: "15m ago",
+      isRead: false
+    },
+    {
+      id: "3",
+      type: "follow",
+      user: "Samantha Lee",
+      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop",
+      message: "started following you.",
+      time: "1h ago",
+      isRead: true
+    },
+    {
+      id: "4",
+      type: "system",
+      user: "BirthDayApp",
+      avatar: "",
+      message: "Your virtual celebration starts in 1 hour! 🎊",
+      time: "3h ago",
+      isRead: true
+    }
+  ]);
+  const [userProfile, setUserProfile] = useState({
+    name: "Alex Johnson",
+    username: "@alex_bday_guru",
+    bio: "Turning celebrations into legendary memories. 🎂 Birthday Guru & Party Architect.",
+    location: "Manhattan, NY",
+    website: "alexcelebrates.com",
+  });
+  const [accountData, setAccountData] = useState({
+    email: "alex@example.com",
+    phone: "+1 234 567 890",
+    twoFactor: true,
+    securityScore: 85,
+    loginAlerts: true
+  });
   const [reels, setReels] = useState<ReelItem[]>([
     {
       id: "1",
@@ -219,6 +312,67 @@ function MainApp() {
       isBookmarked: true
     }
   ]);
+
+  // Load data from AsyncStorage
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const storedPosts = await AsyncStorage.getItem("posts");
+        const storedStories = await AsyncStorage.getItem("stories");
+        const storedReels = await AsyncStorage.getItem("reels");
+        const storedSeenStories = await AsyncStorage.getItem("seenStoryIds");
+        const storedProfileImage = await AsyncStorage.getItem("userProfileImage");
+        const storedBalance = await AsyncStorage.getItem("currentBalance");
+        const storedTransactions = await AsyncStorage.getItem("transactions");
+        const storedNotifications = await AsyncStorage.getItem("notifications");
+        const storedGroupGifts = await AsyncStorage.getItem("groupGifts");
+        const storedUserProfile = await AsyncStorage.getItem("userProfile");
+        const storedAccountData = await AsyncStorage.getItem("accountData");
+
+        if (storedPosts) setPosts(JSON.parse(storedPosts));
+        if (storedStories) setStories(JSON.parse(storedStories));
+        if (storedReels) setReels(JSON.parse(storedReels));
+        if (storedSeenStories) setSeenStoryIds(new Set(JSON.parse(storedSeenStories)));
+        if (storedProfileImage) setUserProfileImage(storedProfileImage);
+        if (storedBalance) setCurrentBalance(JSON.parse(storedBalance));
+        if (storedTransactions) setTransactions(JSON.parse(storedTransactions));
+        if (storedNotifications) setNotifications(JSON.parse(storedNotifications));
+        if (storedGroupGifts) setGroupGifts(JSON.parse(storedGroupGifts));
+        if (storedUserProfile) setUserProfile(JSON.parse(storedUserProfile));
+        if (storedAccountData) setAccountData(JSON.parse(storedAccountData));
+      } catch (error) {
+        console.error("Failed to load activity from storage:", error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Persist data to AsyncStorage
+  useEffect(() => {
+    if (!isLoaded) return;
+    const saveData = async () => {
+      try {
+        await AsyncStorage.setItem("posts", JSON.stringify(posts));
+        await AsyncStorage.setItem("stories", JSON.stringify(stories));
+        await AsyncStorage.setItem("reels", JSON.stringify(reels));
+        await AsyncStorage.setItem("seenStoryIds", JSON.stringify(Array.from(seenStoryIds)));
+        await AsyncStorage.setItem("userProfileImage", userProfileImage);
+        await AsyncStorage.setItem("currentBalance", JSON.stringify(currentBalance));
+        await AsyncStorage.setItem("transactions", JSON.stringify(transactions));
+        await AsyncStorage.setItem("notifications", JSON.stringify(notifications));
+        await AsyncStorage.setItem("groupGifts", JSON.stringify(groupGifts));
+        await AsyncStorage.setItem("userProfile", JSON.stringify(userProfile));
+        await AsyncStorage.setItem("accountData", JSON.stringify(accountData));
+      } catch (error) {
+        console.error("Failed to save activity to storage:", error);
+      }
+    };
+
+    saveData();
+  }, [posts, stories, reels, seenStoryIds, userProfileImage, currentBalance, transactions, notifications, groupGifts, userProfile, accountData, isLoaded]);
 
   const handlePost = (
     content: string, 
@@ -401,6 +555,13 @@ function MainApp() {
   };
 
   const navigateTo = (screen: string, id?: string, mode?: 'post' | 'video', url?: string, title?: string) => {
+    // If the destination is one of the main tabs, switch the tab instead of showing a view
+    const mainTabs = ["home", "calendar", "video", "gift_shop", "profile"];
+    if (mainTabs.includes(screen)) {
+      handleTabChange(screen);
+      return;
+    }
+
     if (screen === "post_detail" && id) {
       setSelectedPostId(id);
     }
@@ -422,6 +583,14 @@ function MainApp() {
   };
 
   const renderScreen = () => {
+    if (!isLoaded) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      );
+    }
+
     if (view === "webview" && webViewUrl) {
       return (
         <WebViewScreen 
@@ -434,9 +603,23 @@ function MainApp() {
     if (view === "privacy_policy") return <PrivacyPolicyScreen onBack={() => setView(null)} />;
     if (view === "terms") return <TermsAndConditionsScreen onBack={() => setView(null)} />;
     if (view === "gift_shop") return <GiftShopScreen onBack={() => setView(null)} onNavigate={navigateTo} searchQuery={searchQuery} />;
-    if (view === "wallet") return <WalletScreen onBack={() => setView(null)} />;
-    if (view === "notifications") return <NotificationScreen onBack={() => setView(null)} />;
-    if (view === "group_gifts") return <GroupGiftScreen onBack={() => setView(null)} />;
+    if (view === "wallet") return (
+      <WalletScreen 
+        balance={currentBalance} 
+        transactions={transactions}
+        setBalance={setCurrentBalance}
+        setTransactions={setTransactions}
+        onBack={() => setView(null)} 
+      />
+    );
+    if (view === "notifications") return <NotificationScreen notifications={notifications} onBack={() => setView(null)} />;
+    if (view === "group_gifts") return (
+      <GroupGiftScreen 
+        pools={groupGifts} 
+        setPools={setGroupGifts} 
+        onBack={() => setView(null)} 
+      />
+    );
     if (view === "post") return <PostScreen userProfileImage={userProfileImage} initialMode={postMode} onPost={handlePost} onBack={() => setView(null)} />;
     if (view === "video") return <VideoScreen reels={reels} userProfileImage={userProfileImage} onBack={() => setView(null)} onNavigate={navigateTo} />;
     
@@ -482,7 +665,18 @@ function MainApp() {
       case "video":
         return <VideoScreen reels={reels} userProfileImage={userProfileImage} onBack={() => setActiveTab("home")} onNavigate={navigateTo} />;
       case "profile":
-        return <ProfileScreen searchQuery={searchQuery} userProfileImage={userProfileImage} onUpdateProfileImage={setUserProfileImage} onNavigate={navigateTo} />;
+        return (
+          <ProfileScreen 
+            searchQuery={searchQuery} 
+            userProfileImage={userProfileImage} 
+            onUpdateProfileImage={setUserProfileImage} 
+            onNavigate={navigateTo}
+            profile={userProfile}
+            setProfile={setUserProfile}
+            accountData={accountData}
+            setAccountData={setAccountData}
+          />
+        );
       default:
         return <HomeScreen {...homeProps} posts={filteredPosts} />;
     }

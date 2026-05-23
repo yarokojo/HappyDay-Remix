@@ -5,14 +5,15 @@ import { MotiView, AnimatePresence } from "moti";
 import { Transaction } from "../types";
 import { useTheme } from "../context/ThemeContext";
 
-const MOCK_TRANSACTIONS: Transaction[] = [
-  { id: "t1", type: "gift_received", amount: 2500, date: "Today, 10:45 AM", senderName: "Julia Mason", status: "completed" },
-  { id: "t2", type: "gift_received", amount: 5000, date: "Yesterday, 08:20 PM", senderName: "Kevin Hart", status: "completed" },
-  { id: "t3", type: "withdrawal", amount: 10000, date: "2 days ago", status: "completed" },
-  { id: "t4", type: "gift_received", amount: 15000, date: "3 days ago", senderName: "Samantha Lee", status: "completed" },
-];
+interface WalletScreenProps {
+  onBack: () => void;
+  balance: number;
+  transactions: Transaction[];
+  setBalance: (balance: number | ((prev: number) => number)) => void;
+  setTransactions: (transactions: Transaction[] | ((prev: Transaction[]) => Transaction[])) => void;
+}
 
-export default function WalletScreen({ onBack }: { onBack: () => void }) {
+export default function WalletScreen({ onBack, balance: currentBalance, transactions, setBalance: setCurrentBalance, setTransactions }: WalletScreenProps) {
   const { theme, darkMode } = useTheme();
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [isToppingUp, setIsToppingUp] = useState(false);
@@ -22,7 +23,6 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
   const [selectedNetwork, setSelectedNetwork] = useState("MTN");
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [currentBalance, setCurrentBalance] = useState(325);
 
   const networks = [
     { id: "MTN", name: "MTN", color: "#fbbf24" },
@@ -40,7 +40,18 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      setCurrentBalance(prev => prev - totalDeduction);
+      const newBalance = currentBalance - totalDeduction;
+      setCurrentBalance(newBalance);
+      
+      const newTransaction: Transaction = {
+        id: "t" + Date.now(),
+        type: "withdrawal",
+        amount: amount,
+        date: "Just now",
+        status: "completed"
+      };
+      setTransactions(prev => [newTransaction, ...prev]);
+      
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
@@ -58,6 +69,17 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
     setTimeout(() => {
       setLoading(false);
       setCurrentBalance(prev => prev + amount);
+      
+      const newTransaction: Transaction = {
+        id: "t" + Date.now(),
+        type: "gift_received", // Reusing this type for top up for simplicity or we could add 'top_up'
+        amount: amount,
+        date: "Just now",
+        senderName: "Self Top-up",
+        status: "completed"
+      };
+      setTransactions(prev => [newTransaction, ...prev]);
+
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
@@ -116,7 +138,7 @@ export default function WalletScreen({ onBack }: { onBack: () => void }) {
           </View>
 
           <View style={styles.transactionList}>
-            {MOCK_TRANSACTIONS.map((tx) => (
+            {transactions.map((tx) => (
               <View key={tx.id} style={[styles.transactionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                 <View style={styles.txLeft}>
                   <View style={[
