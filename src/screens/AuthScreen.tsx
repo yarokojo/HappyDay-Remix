@@ -161,7 +161,6 @@ export default function AuthScreen({ onLogin }: AuthScreenProps) {
             </TouchableOpacity>
           </View>
         </View>
-
         <TouchableOpacity 
           style={styles.toggleMode}
           onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}

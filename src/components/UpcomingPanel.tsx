@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { Clock } from "lucide-react-native";
+import { Clock, Heart, Gift } from "lucide-react-native";
 import { useTheme } from "../context/ThemeContext";
 
 const UPCOMING = [
@@ -9,7 +9,13 @@ const UPCOMING = [
   { id: "3", name: "Tom Holland", day: "28", daysLeft: 10, color: "#dbeafe", textColor: "#2563eb", imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop" },
 ];
 
-export default function UpcomingPanel() {
+export default function UpcomingPanel({ 
+  onWishClick, 
+  onGiftClick 
+}: { 
+  onWishClick?: (name: string) => void;
+  onGiftClick?: () => void;
+}) {
   const { theme, darkMode } = useTheme();
   return (
     <View style={[styles.container, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -22,12 +28,12 @@ export default function UpcomingPanel() {
       
       <View style={styles.list}>
         {UPCOMING.map((event) => (
-          <TouchableOpacity 
-            key={event.id} 
-            style={styles.item}
-            activeOpacity={0.7}
-          >
-            <View style={styles.itemLeft}>
+          <View key={event.id} style={styles.item}>
+            <TouchableOpacity 
+              style={styles.itemLeft}
+              activeOpacity={0.7}
+              onPress={() => onWishClick?.(event.name)}
+            >
               <View style={styles.avatarContainer}>
                 <Image source={{ uri: event.imageUrl }} style={[styles.avatar, { borderColor: theme.card }]} />
                 <View style={[styles.dayBadge, { backgroundColor: darkMode ? theme.itemBg : event.color, borderColor: theme.card }]}>
@@ -38,11 +44,22 @@ export default function UpcomingPanel() {
                 <Text style={[styles.name, { color: theme.text }]}>{event.name}</Text>
                 <Text style={[styles.daysLeft, { color: theme.subText }]}>In {event.daysLeft} days</Text>
               </View>
+            </TouchableOpacity>
+            <View style={styles.itemActions}>
+              <TouchableOpacity 
+                onPress={() => onWishClick?.(event.name)}
+                style={[styles.miniAction, { backgroundColor: theme.itemBg }]}
+              >
+                <Heart size={14} color={theme.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={onGiftClick}
+                style={[styles.miniAction, { backgroundColor: theme.itemBg }]}
+              >
+                <Gift size={14} color={darkMode ? theme.secondary : "#ec4899"} />
+              </TouchableOpacity>
             </View>
-            <View style={[styles.clockIcon, { backgroundColor: theme.itemBg }]}>
-              <Clock size={16} color={theme.subText} />
-            </View>
-          </TouchableOpacity>
+          </View>
         ))}
         
         <View style={[styles.syncBox, { backgroundColor: theme.itemBg, borderColor: theme.border }]}>
@@ -51,7 +68,6 @@ export default function UpcomingPanel() {
           </Text>
         </View>
       </View>
-
       <View style={[styles.footer, { borderTopColor: theme.border }]}>
         <Text style={[styles.footerTitle, { color: theme.subText }]}>Top Gift Givers</Text>
         <View style={styles.giversList}>
@@ -78,7 +94,7 @@ export default function UpcomingPanel() {
                 source={{ uri: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" }} 
                 style={styles.smallAvatar} 
               />
-              <Text style={[styles.giverName, { color: theme.text }]}>David G.</Text>
+              <Text style={[styles.giverName, { color: theme.text }]}>David G</Text>
             </View>
             <Text style={[styles.giftCount, { color: theme.primary }]}>8 Gifts</Text>
           </View>
@@ -161,6 +177,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#94a3b8',
     textTransform: 'uppercase',
+  },
+  itemActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  miniAction: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   clockIcon: {
     width: 32,

@@ -661,7 +661,6 @@ export default function ProfileScreen({
                 />
               ))}
             </View>
-
             <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
               <Text style={styles.logoutBtnText}>Log Out</Text>
             </TouchableOpacity>

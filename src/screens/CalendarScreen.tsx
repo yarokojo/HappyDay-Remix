@@ -1,10 +1,18 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, TextInput } from "react-native";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Search, Heart, Gift } from "lucide-react-native";
 import { useTheme } from "../context/ThemeContext";
 
 
-export default function CalendarScreen({ searchQuery = "" }: { searchQuery?: string }) {
+export default function CalendarScreen({ 
+  searchQuery = "",
+  onWishClick,
+  onGiftClick
+}: { 
+  searchQuery?: string,
+  onWishClick?: (name: string) => void,
+  onGiftClick?: () => void
+}) {
   const { theme, darkMode } = useTheme();
   const [internalSearch, setInternalSearch] = useState("");
 
@@ -77,25 +85,38 @@ export default function CalendarScreen({ searchQuery = "" }: { searchQuery?: str
             );
           })}
         </View>
-
         <View style={[styles.eventsSection, { borderTopColor: theme.border }]}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Celebrations this month</Text>
-          {filteredEvents.length > 0 ? filteredEvents.map((event) => (
-            <View key={event.id} style={[styles.eventCard, { backgroundColor: theme.card, borderColor: theme.border, marginBottom: 12 }]}>
-              <View style={styles.eventLeft}>
-                <View style={[styles.eventDate, { backgroundColor: darkMode ? theme.itemBg : theme.primary + '15' }]}>
-                  <Text style={[styles.eventDateText, { color: theme.primary }]}>{event.date}</Text>
+          {filteredEvents.length > 0 ? filteredEvents.map((event) => {
+            const nameBase = event.name.includes("'") ? event.name.split("'")[0] : event.name;
+            return (
+              <View key={event.id} style={[styles.eventCard, { backgroundColor: theme.card, borderColor: theme.border, marginBottom: 12 }]}>
+                <View style={styles.eventLeft}>
+                  <View style={[styles.eventDate, { backgroundColor: darkMode ? theme.itemBg : theme.primary + '15' }]}>
+                    <Text style={[styles.eventDateText, { color: theme.primary }]}>{event.date}</Text>
+                  </View>
+                  <View>
+                    <Text style={[styles.eventName, { color: theme.text }]}>{event.name}</Text>
+                    <Text style={[styles.eventMeta, { color: theme.subText }]}>{event.type} • {event.time}</Text>
+                  </View>
                 </View>
-                <View>
-                  <Text style={[styles.eventName, { color: theme.text }]}>{event.name}</Text>
-                  <Text style={[styles.eventMeta, { color: theme.subText }]}>{event.type} • {event.time}</Text>
+                <View style={styles.eventActions}>
+                  <TouchableOpacity 
+                     onPress={() => onWishClick?.(nameBase)}
+                     style={[styles.smallAction, { backgroundColor: theme.itemBg }]}
+                  >
+                    <Heart size={14} color={theme.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                     onPress={onGiftClick}
+                     style={[styles.smallAction, { backgroundColor: theme.itemBg }]}
+                  >
+                    <Gift size={14} color={darkMode ? theme.secondary : "#ec4899"} />
+                  </TouchableOpacity>
                 </View>
               </View>
-              <TouchableOpacity style={[styles.detailsBtn, { backgroundColor: theme.itemBg }]}>
-                <Text style={[styles.detailsBtnText, { color: theme.primary }]}>Details</Text>
-              </TouchableOpacity>
-            </View>
-          )) : (
+            );
+          }) : (
             <View style={styles.emptySearch}>
               <Text style={{ color: theme.subText, textAlign: 'center' }}>No celebrations found for "{effectiveSearch}"</Text>
             </View>
@@ -231,6 +252,17 @@ const styles = StyleSheet.create({
   eventMeta: {
     fontSize: 12,
     marginTop: 2,
+  },
+  eventActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  smallAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   detailsBtn: {
     paddingHorizontal: 16,

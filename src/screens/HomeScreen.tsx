@@ -408,7 +408,10 @@ export default function HomeScreen({
                     exit={{ opacity: 0, translateX: -20 }}
                     style={styles.screenPadding}
                   >
-                    <UpcomingPanel />
+                    <UpcomingPanel 
+                      onWishClick={onWish}
+                      onGiftClick={() => onNavigate('gift_shop')}
+                    />
                     <View style={styles.nextMonthContainer}>
                       <Text style={[styles.nextMonthTitle, { color: theme.text }]}>Next Month</Text>
                       <View style={[styles.emptyEventRow, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -420,11 +423,13 @@ export default function HomeScreen({
                 )}
               </AnimatePresence>
             </View>
-
             {/* Right Sidebar (Web/Tablet only) */}
             {(isLargeScreen || isTablet) && (
               <View style={styles.rightColumn}>
-                <UpcomingPanel />
+                <UpcomingPanel 
+                  onWishClick={onWish}
+                  onGiftClick={() => onNavigate('gift_shop')}
+                />
                 <View style={[styles.webBanner, { backgroundColor: theme.card, borderColor: theme.border }]}>
                   <Text style={[styles.webBannerTitle, { color: theme.text }]}>Premium Events</Text>
                   <Text style={[styles.webBannerDesc, { color: theme.subText }]}>Upgrade to host unlimited virtual parties with HD streaming.</Text>

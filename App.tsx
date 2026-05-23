@@ -774,7 +774,13 @@ function MainApp() {
       case "home":
         return <HomeScreen {...homeProps} posts={filteredPosts} />;
       case "calendar":
-        return <CalendarScreen searchQuery={searchQuery} />;
+        return (
+          <CalendarScreen 
+            searchQuery={searchQuery} 
+            onWishClick={handleWish}
+            onGiftClick={() => navigateTo('gift_shop')}
+          />
+        );
       case "gift_shop":
         return (
           <GiftShopScreen 
@@ -838,7 +844,6 @@ function MainApp() {
             <View style={styles.screenContent}>
               {renderScreen()}
             </View>
-    
             <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} />
           </View>
         </KeyboardAvoidingView>
