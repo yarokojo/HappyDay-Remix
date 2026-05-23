@@ -1,13 +1,41 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from "react-native";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, TextInput } from "react-native";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react-native";
 import { useTheme } from "../context/ThemeContext";
 
-export default function CalendarScreen() {
+
+export default function CalendarScreen({ searchQuery = "" }: { searchQuery?: string }) {
   const { theme, darkMode } = useTheme();
+  const [internalSearch, setInternalSearch] = useState("");
+
+  const events = [
+    { id: 1, name: "Julia Mason's Birthday", date: "09", time: "7:00 PM", type: "Main Event" },
+    { id: 2, name: "Kevin Hart's Party", date: "21", time: "8:30 PM", type: "Party" },
+    { id: 3, name: "Samantha Lee's Surprise", date: "25", time: "6:00 PM", type: "Surprise" },
+  ];
+
+  const effectiveSearch = internalSearch || searchQuery;
+
+  const filteredEvents = events.filter(event => 
+    event.name.toLowerCase().includes(effectiveSearch.toLowerCase()) ||
+    event.type.toLowerCase().includes(effectiveSearch.toLowerCase())
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Search Bar */}
+        <View style={[styles.searchBar, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Search size={18} color={theme.subText} />
+          <TextInput 
+            placeholder="Search events..." 
+            style={[styles.searchInput, { color: theme.text }]}
+            placeholderTextColor={theme.subText}
+            value={internalSearch}
+            onChangeText={setInternalSearch}
+          />
+        </View>
+
         <View style={styles.header}>
           <Text style={[styles.monthTitle, { color: theme.text }]}>September 2026</Text>
           <View style={styles.navBtns}>
@@ -52,20 +80,26 @@ export default function CalendarScreen() {
 
         <View style={[styles.eventsSection, { borderTopColor: theme.border }]}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Celebrations this month</Text>
-          <View style={[styles.eventCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <View style={styles.eventLeft}>
-              <View style={[styles.eventDate, { backgroundColor: darkMode ? theme.itemBg : theme.primary + '15' }]}>
-                <Text style={[styles.eventDateText, { color: theme.primary }]}>09</Text>
+          {filteredEvents.length > 0 ? filteredEvents.map((event) => (
+            <View key={event.id} style={[styles.eventCard, { backgroundColor: theme.card, borderColor: theme.border, marginBottom: 12 }]}>
+              <View style={styles.eventLeft}>
+                <View style={[styles.eventDate, { backgroundColor: darkMode ? theme.itemBg : theme.primary + '15' }]}>
+                  <Text style={[styles.eventDateText, { color: theme.primary }]}>{event.date}</Text>
+                </View>
+                <View>
+                  <Text style={[styles.eventName, { color: theme.text }]}>{event.name}</Text>
+                  <Text style={[styles.eventMeta, { color: theme.subText }]}>{event.type} • {event.time}</Text>
+                </View>
               </View>
-              <View>
-                <Text style={[styles.eventName, { color: theme.text }]}>Julia Mason's Birthday</Text>
-                <Text style={[styles.eventMeta, { color: theme.subText }]}>Main Event • 7:00 PM</Text>
-              </View>
+              <TouchableOpacity style={[styles.detailsBtn, { backgroundColor: theme.itemBg }]}>
+                <Text style={[styles.detailsBtnText, { color: theme.primary }]}>Details</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={[styles.detailsBtn, { backgroundColor: theme.itemBg }]}>
-              <Text style={[styles.detailsBtnText, { color: theme.primary }]}>Details</Text>
-            </TouchableOpacity>
-          </View>
+          )) : (
+            <View style={styles.emptySearch}>
+              <Text style={{ color: theme.subText, textAlign: 'center' }}>No celebrations found for "{effectiveSearch}"</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -81,6 +115,23 @@ const styles = StyleSheet.create({
     maxWidth: 600,
     alignSelf: 'center',
     width: '100%',
+  },
+  searchBar: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    marginBottom: 24,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
@@ -191,5 +242,10 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  emptySearch: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

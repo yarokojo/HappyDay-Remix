@@ -30,19 +30,50 @@ const MOCK_GROUP_GIFTS: GroupGift[] = [
 
 export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
   const { theme, darkMode } = useTheme();
-  const [selectedGift, setSelectedGift] = useState<GroupGift | null>(null);
+  const [pools, setPools] = useState<GroupGift[]>(MOCK_GROUP_GIFTS);
+  const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
   const [contribution, setContribution] = useState("10");
 
+  const selectedGift = pools.find(p => p.id === selectedGiftId) || null;
+
   const handleContribute = () => {
+    if (!selectedGift) return;
+    
+    const amount = parseFloat(contribution);
+    const updatedPools = pools.map(pool => {
+      if (pool.id === selectedGift.id) {
+        const newAmount = pool.currentAmount + amount;
+        const isNowComplete = newAmount >= pool.targetAmount;
+        
+        if (isNowComplete && pool.currentAmount < pool.targetAmount) {
+          // Trigger automated alerts and transfer
+          setTimeout(() => {
+            Alert.alert(
+              "🎯 Target Reached!", 
+              `Congratulations! The target for ${pool.giftName} has been met.\n\nAutomated actions:\n1. Contributors notified\n2. ₵${newAmount} sent to ${pool.celebrantName}'s wallet`
+            );
+          }, 500);
+        }
+        
+        return {
+          ...pool,
+          currentAmount: newAmount,
+          contributorsCount: pool.contributorsCount + 1
+        };
+      }
+      return pool;
+    });
+
+    setPools(updatedPools);
     Alert.alert("Success", `Contributed ₵${contribution} successfully!`);
-    setSelectedGift(null);
+    setSelectedGiftId(null);
   };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
         <TouchableOpacity 
-          onPress={selectedGift ? () => setSelectedGift(null) : onBack}
+          onPress={selectedGift ? () => setSelectedGiftId(null) : onBack}
           style={styles.backBtn}
         >
           <ArrowLeft size={24} color={theme.text} />
@@ -72,28 +103,36 @@ export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
             </View>
 
             <View style={styles.giftList}>
-              {MOCK_GROUP_GIFTS.map((gift) => {
-                const progress = (gift.currentAmount / gift.targetAmount) * 100;
+              {pools.map((gift) => {
+                const progress = Math.min((gift.currentAmount / gift.targetAmount) * 100, 100);
+                const isComplete = gift.currentAmount >= gift.targetAmount;
                 return (
                   <TouchableOpacity
                     key={gift.id}
-                    onPress={() => setSelectedGift(gift)}
+                    onPress={() => setSelectedGiftId(gift.id)}
                     style={[styles.giftCard, { backgroundColor: theme.card, borderColor: theme.border }]}
                   >
                     <View style={styles.giftLayout}>
                       <Image source={{ uri: gift.imageUrl }} style={[styles.giftThumb, { backgroundColor: theme.itemBg }]} />
                       <View style={styles.giftInfo}>
-                        <Text style={[styles.giftName, { color: theme.text }]} numberOfLines={1}>{gift.giftName}</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={[styles.giftName, { color: theme.text }]} numberOfLines={1}>{gift.giftName}</Text>
+                          {isComplete && (
+                             <View style={{ backgroundColor: '#22c55e', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                               <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>COMPLETE</Text>
+                             </View>
+                          )}
+                        </View>
                         <Text style={[styles.celebrantName, { color: theme.subText }]}>For {gift.celebrantName}</Text>
                         
                         <View style={styles.giftMeta}>
                           <View style={styles.metaItem}>
-                            <DollarSign size={12} color={theme.accent} />
+                            <DollarSign size={12} color={isComplete ? '#22c55e' : theme.accent} />
                             <Text style={[styles.metaValue, { color: theme.text }]}>₵{gift.currentAmount} / ₵{gift.targetAmount}</Text>
                           </View>
                           <View style={styles.metaItem}>
                             <Clock size={12} color={theme.subText} />
-                            <Text style={[styles.deadlineText, { color: theme.subText }]}>{gift.deadline}</Text>
+                            <Text style={[styles.deadlineText, { color: theme.subText }]}>{isComplete ? 'Goal Met' : gift.deadline}</Text>
                           </View>
                         </View>
 
@@ -101,7 +140,7 @@ export default function GroupGiftScreen({ onBack }: { onBack: () => void }) {
                           <MotiView 
                             from={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
-                            style={[styles.progressBarFill, { backgroundColor: theme.primary }]}
+                            style={[styles.progressBarFill, { backgroundColor: isComplete ? '#22c55e' : theme.primary }]}
                           />
                         </View>
                       </View>

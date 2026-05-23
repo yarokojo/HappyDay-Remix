@@ -14,7 +14,15 @@ const GIFTS: GiftType[] = [
   { id: "g6", name: "Gift Card", price: 10, category: "Cash", imageUrl: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=300&h=300&fit=crop" },
 ];
 
-export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => void, onNavigate?: (screen: string, id?: string, mode?: 'post' | 'video', url?: string, title?: string) => void }) {
+export default function GiftShopScreen({ 
+  onBack, 
+  onNavigate, 
+  searchQuery = "" 
+}: { 
+  onBack: () => void, 
+  onNavigate?: (screen: string, id?: string, mode?: 'post' | 'video', url?: string, title?: string) => void,
+  searchQuery?: string
+}) {
   const { theme, darkMode } = useTheme();
   const { width } = useWindowDimensions();
   const numColumns = width > 1024 ? 4 : (width > 768 ? 3 : 2);
@@ -26,6 +34,7 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
   const [selectedNetwork, setSelectedNetwork] = useState("MTN");
   const [showSuccess, setShowSuccess] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [internalSearch, setInternalSearch] = useState("");
 
   const networks = [
     { id: "MTN", name: "MTN", color: "#fbbf24" },
@@ -35,9 +44,15 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
 
   const categories = ["All", "Luxury", "Food", "Flowers", "Drinks", "Cash"];
 
-  const filteredGifts = activeCategory === "All" 
-    ? GIFTS 
-    : GIFTS.filter(g => g.category === activeCategory);
+  const effectiveSearch = internalSearch || searchQuery;
+
+  const filteredGifts = GIFTS.filter(gift => {
+    const matchesCategory = activeCategory === "All" || gift.category === activeCategory;
+    const matchesSearch = !effectiveSearch || 
+      gift.name.toLowerCase().includes(effectiveSearch.toLowerCase()) ||
+      gift.category.toLowerCase().includes(effectiveSearch.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const handlePay = () => {
     if (!phoneNumber) return;
@@ -74,6 +89,8 @@ export default function GiftShopScreen({ onBack, onNavigate }: { onBack: () => v
             placeholder="Search gifts..." 
             style={[styles.searchInput, { color: theme.text }]}
             placeholderTextColor={theme.subText}
+            value={internalSearch}
+            onChangeText={setInternalSearch}
           />
         </View>
 

@@ -7,7 +7,7 @@ import GiftShopBanner from "../components/GiftShopBanner";
 import UpcomingPanel from "../components/UpcomingPanel";
 import { Celebrant, Post, Story } from "../types";
 import FeedCard from "../components/FeedCard";
-import { LayoutGrid, Sparkles, CalendarRange, PlusCircle, Image as ImageIcon, Cake, Plus, Search } from "lucide-react-native";
+import { LayoutGrid, Sparkles, CalendarRange, PlusCircle, Image as ImageIcon, Cake, Plus, Search, TrendingUp, Heart, MessageCircle, Gift, Trophy, Star } from "lucide-react-native";
 import { useTheme } from "../context/ThemeContext";
 
 const TODAY_CELEBRANTS: Celebrant[] = [
@@ -97,8 +97,16 @@ export default function HomeScreen({
 
   const tabs = [
     { id: "feeds", label: "Feeds", icon: LayoutGrid },
+    { id: "trending", label: "Trending", icon: TrendingUp },
     { id: "today", label: "Today", icon: Sparkles },
     { id: "upcoming", label: "Upcoming", icon: CalendarRange },
+  ];
+
+  const trendingItems = [
+    { id: '1', title: 'Julia\'s 24th', score: '2.4k wishes', type: 'birthday', image: 'https://images.unsplash.com/photo-1464347744102-11db6282f854?w=400' },
+    { id: '2', title: 'Golden Cake', score: '850 sends', type: 'gift', image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400' },
+    { id: '3', title: 'Summer Party', score: '1.2k likes', type: 'reels', image: 'https://images.unsplash.com/photo-1530103578275-21127a7c569a?w=400' },
+    { id: '4', title: 'David\'s Grad', score: '560 gifts', type: 'graduation', image: 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=400' },
   ];
 
   return (
@@ -247,6 +255,92 @@ export default function HomeScreen({
                     </View>
 
                     {!(isLargeScreen || isTablet) && <UpcomingPanel />}
+                  </MotiView>
+                )}
+
+                {activeTopTab === "trending" && (
+                  <MotiView
+                    key="trending"
+                    from={{ opacity: 0, translateY: 10 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    exit={{ opacity: 0, translateY: -10 }}
+                    style={styles.screenPadding}
+                  >
+                    <View style={styles.sectionHeader}>
+                      <Text style={[styles.sectionTitle, { color: theme.text }]}>What's Trending</Text>
+                      <View style={[styles.liveBadge, { backgroundColor: theme.primary + '15' }]}>
+                        <TrendingUp size={12} color={theme.primary} />
+                        <Text style={[styles.liveText, { color: theme.primary, marginLeft: 4 }]}>HOT</Text>
+                      </View>
+                    </View>
+
+                    {/* Trending Hashtags Section */}
+                    <View style={styles.trendingContainer}>
+                      <Text style={[styles.trendingTitle, { color: theme.subText }]}>Popular Topics</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagsScroll}>
+                        {['#Julia24th', '#SweetSixteen', '#GoldenJubilee', '#SurpriseParty', '#WeddingVibes', '#Graduation2026'].map((tag, i) => (
+                          <TouchableOpacity key={i} style={[styles.tag, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                            <Text style={[styles.tagText, { color: theme.primary }]}>{tag}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+
+                    {/* Trending Grid */}
+                    <View style={styles.trendingGrid}>
+                      {trendingItems.map((item, index) => (
+                        <TouchableOpacity 
+                          key={item.id} 
+                          style={[styles.trendingItemCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                          onPress={() => item.type === 'gift' ? onNavigate('gift_shop') : (item.type === 'reels' ? onNavigate('video') : onNavigate('post_detail', 'p1'))}
+                        >
+                          <Image source={{ uri: item.image }} style={styles.trendingItemImage} />
+                          <View style={styles.trendingItemInfo}>
+                            <View style={styles.trendingItemHeader}>
+                              <Text style={[styles.trendingItemTitle, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
+                              <View style={[styles.rankBadge, { backgroundColor: index === 0 ? '#fbbf24' : (index === 1 ? '#94a3b8' : '#d97706') }]}>
+                                <Text style={styles.rankText}>{index + 1}</Text>
+                              </View>
+                            </View>
+                            <View style={styles.trendingItemMeta}>
+                              <View style={styles.trendingItemStat}>
+                                {item.type === 'gift' ? <Gift size={12} color={theme.subText} /> : (item.type === 'reels' ? <MessageCircle size={12} color={theme.subText} /> : <Heart size={12} color={theme.subText} />)}
+                                <Text style={[styles.trendingItemScore, { color: theme.subText }]}>{item.score}</Text>
+                              </View>
+                              <View style={[styles.trendingTypeTag, { backgroundColor: theme.itemBg }]}>
+                                <Text style={[styles.trendingTypeText, { color: theme.primary }]}>{item.type.toUpperCase()}</Text>
+                              </View>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    <View style={[styles.celebrationLeaderboard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                      <View style={styles.leaderboardHeader}>
+                        <Trophy size={20} color="#fbbf24" />
+                        <Text style={[styles.leaderboardTitle, { color: theme.text }]}>Celebration Leaderboard</Text>
+                      </View>
+                      
+                      {[
+                        { name: 'Sarah Jenkins', points: 4500, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
+                        { name: 'Marcus Chen', points: 3800, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' },
+                        { name: 'Elena Rodriguez', points: 3200, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100' },
+                      ].map((winner, idx) => (
+                        <View key={idx} style={[styles.leaderboardRow, { borderBottomColor: theme.border }]}>
+                          <View style={styles.leaderboardUser}>
+                            <Image source={{ uri: winner.avatar }} style={styles.leaderboardAvatar} />
+                            <Text style={[styles.leaderboardName, { color: theme.text }]}>{winner.name}</Text>
+                          </View>
+                          <View style={styles.leaderboardPoints}>
+                            <Star size={12} color="#fbbf24" fill="#fbbf24" />
+                            <Text style={[styles.pointsText, { color: theme.primary }]}>{winner.points}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+
+                    <GiftShopBanner />
                   </MotiView>
                 )}
 
@@ -656,6 +750,126 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 40,
     lineHeight: 20,
+  },
+  trendingGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  trendingItemCard: {
+    width: '47%',
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  trendingItemImage: {
+    width: '100%',
+    height: 120,
+  },
+  trendingItemInfo: {
+    padding: 12,
+    gap: 8,
+  },
+  trendingItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  trendingItemTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    flex: 1,
+  },
+  rankBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankText: {
+    color: '#fff',
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  trendingItemMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  trendingItemStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  trendingItemScore: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  trendingTypeTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  trendingTypeText: {
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  celebrationLeaderboard: {
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 16,
+    marginTop: 8,
+  },
+  leaderboardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4,
+  },
+  leaderboardTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  leaderboardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  leaderboardUser: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  leaderboardAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  leaderboardName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  leaderboardPoints: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  pointsText: {
+    fontSize: 12,
+    fontWeight: '900',
   },
 });
 

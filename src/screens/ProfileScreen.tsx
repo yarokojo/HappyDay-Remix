@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, TextInput, Modal, Share, Alert, Platform, useWindowDimensions, Clipboard } from "react-native";
-import { Settings, Grid, Heart, Package, Edit3, Camera, MapPin, Calendar, Activity, Check, X, Globe, Link as LinkIcon, Instagram, Twitter, Share2, Plus, Users, ArrowLeft, CreditCard, Smartphone, ChevronRight, Lock, Bell, Moon, Shield, Eye, Trash2 } from "lucide-react-native";
+import { Settings, Grid, Heart, Package, Edit3, Camera, MapPin, Calendar, Activity, Check, X, Globe, Link as LinkIcon, Instagram, Twitter, Share2, Plus, Users, ArrowLeft, CreditCard, Smartphone, ChevronRight, Lock, Bell, Moon, Shield, Eye, Trash2, Search } from "lucide-react-native";
 import { MotiView, AnimatePresence } from "moti";
 import { BlurView } from "expo-blur";
 import { useTheme } from "../context/ThemeContext";
@@ -10,11 +10,13 @@ import * as ImagePicker from 'expo-image-picker';
 export default function ProfileScreen({ 
   onNavigate, 
   userProfileImage, 
-  onUpdateProfileImage 
+  onUpdateProfileImage,
+  searchQuery = ""
 }: { 
   onNavigate: (screen: string, id?: string) => void;
   userProfileImage: string;
   onUpdateProfileImage: (image: string) => void;
+  searchQuery?: string;
 }) {
   const { darkMode, toggleDarkMode, theme, setPrimaryColor, primaryColor } = useTheme();
   const { width } = useWindowDimensions();
@@ -23,6 +25,7 @@ export default function ProfileScreen({
 
   const [activeTab, setActiveTab] = useState("posts");
   const [activityFilter, setActivityFilter] = useState("All");
+  const [internalSearch, setInternalSearch] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsView, setSettingsView] = useState("main"); // "main", "personal", "security", "billing", "linked", "blocked", "privacy", "terms"
@@ -129,9 +132,15 @@ export default function ProfileScreen({
     { id: "6", text: "Contributed ₵20 to Sam's Group Gift", time: "3 days ago", type: "gift", icon: Package, color: "#d97706", bg: "#fffbeb" },
   ];
 
-  const filteredActivities = activityFilter === "All" 
-    ? activities 
-    : activities.filter(a => a.type === activityFilter.toLowerCase());
+  const effectiveSearch = internalSearch || searchQuery;
+
+  const filteredActivities = activities.filter(a => {
+    const matchesFilter = activityFilter === "All" || a.type === activityFilter.toLowerCase();
+    const matchesSearch = !effectiveSearch || 
+      a.text.toLowerCase().includes(effectiveSearch.toLowerCase()) || 
+      a.type.toLowerCase().includes(effectiveSearch.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   const handleShare = async () => {
     const shareMessage = `Check out ${profile.name}'s profile on Celebration App!\nhttps://celebration.app/alex_johnson`;
@@ -832,6 +841,16 @@ export default function ProfileScreen({
 
           {activeTab === "activity" && (
             <View style={styles.activityList}>
+              <View style={[styles.searchBar, { backgroundColor: theme.card, borderColor: theme.border, marginBottom: 16 }]}>
+                <Search size={18} color={theme.subText} />
+                <TextInput 
+                  placeholder="Search activities..." 
+                  style={[styles.searchInput, { color: theme.text }]}
+                  placeholderTextColor={theme.subText}
+                  value={internalSearch}
+                  onChangeText={setInternalSearch}
+                />
+              </View>
               <View style={styles.filterRow}>
                 {["All", "Social", "Gift", "Wallet"].map(f => (
                   <TouchableOpacity 
@@ -1941,5 +1960,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#6366f1',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

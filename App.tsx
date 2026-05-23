@@ -433,7 +433,7 @@ function MainApp() {
     }
     if (view === "privacy_policy") return <PrivacyPolicyScreen onBack={() => setView(null)} />;
     if (view === "terms") return <TermsAndConditionsScreen onBack={() => setView(null)} />;
-    if (view === "gift_shop") return <GiftShopScreen onBack={() => setView(null)} onNavigate={navigateTo} />;
+    if (view === "gift_shop") return <GiftShopScreen onBack={() => setView(null)} onNavigate={navigateTo} searchQuery={searchQuery} />;
     if (view === "wallet") return <WalletScreen onBack={() => setView(null)} />;
     if (view === "notifications") return <NotificationScreen onBack={() => setView(null)} />;
     if (view === "group_gifts") return <GroupGiftScreen onBack={() => setView(null)} />;
@@ -476,13 +476,13 @@ function MainApp() {
       case "home":
         return <HomeScreen {...homeProps} posts={filteredPosts} />;
       case "calendar":
-        return <CalendarScreen />;
+        return <CalendarScreen searchQuery={searchQuery} />;
       case "gift_shop":
-        return <GiftShopScreen onBack={() => handleTabChange("home")} />;
+        return <GiftShopScreen onBack={() => handleTabChange("home")} onNavigate={navigateTo} searchQuery={searchQuery} />;
       case "video":
         return <VideoScreen reels={reels} userProfileImage={userProfileImage} onBack={() => setActiveTab("home")} onNavigate={navigateTo} />;
       case "profile":
-        return <ProfileScreen userProfileImage={userProfileImage} onUpdateProfileImage={setUserProfileImage} onNavigate={navigateTo} />;
+        return <ProfileScreen searchQuery={searchQuery} userProfileImage={userProfileImage} onUpdateProfileImage={setUserProfileImage} onNavigate={navigateTo} />;
       default:
         return <HomeScreen {...homeProps} posts={filteredPosts} />;
     }
